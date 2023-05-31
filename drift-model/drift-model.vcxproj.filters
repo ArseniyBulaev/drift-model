@@ -13,5 +13,54 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Исходные файлы\MathModel">
+      <UniqueIdentifier>{edd4e492-e1f2-4e36-954a-407bafa552c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\MathModel">
+      <UniqueIdentifier>{fe565604-a1af-47e8-a36c-86906e26ce1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\Solver">
+      <UniqueIdentifier>{c02e9060-fce9-415a-a4ee-3e5d188f2b29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\Solver">
+      <UniqueIdentifier>{a8855388-534d-47e5-8882-dbaa750f349f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\Well">
+      <UniqueIdentifier>{6317071a-1fa1-462f-bf07-e69933958795}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\Well">
+      <UniqueIdentifier>{6e4fb846-b765-4552-9f50-aa2f2648efa2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="MathModel\DriftModel.cpp">
+      <Filter>Исходные файлы\MathModel</Filter>
+    </ClCompile>
+    <ClCompile Include="Well\Well.cpp">
+      <Filter>Исходные файлы\Well</Filter>
+    </ClCompile>
+    <ClCompile Include="Well\WellSegment.cpp">
+      <Filter>Исходные файлы\Well</Filter>
+    </ClCompile>
+    <ClCompile Include="Solver\DriftModelSolver.cpp">
+      <Filter>Исходные файлы\Solver</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MathModel\DriftModel.h">
+      <Filter>Файлы заголовков\MathModel</Filter>
+    </ClInclude>
+    <ClInclude Include="Solver\DriftModelSolver.h">
+      <Filter>Файлы заголовков\Solver</Filter>
+    </ClInclude>
+    <ClInclude Include="Well\Well.h">
+      <Filter>Файлы заголовков\Well</Filter>
+    </ClInclude>
+    <ClInclude Include="Well\WellSegment.h">
+      <Filter>Файлы заголовков\Well</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
