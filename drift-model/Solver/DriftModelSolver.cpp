@@ -26,7 +26,7 @@ DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well): _d
 
 
 	// »нициализаци€ параметров €чеек
-	InitializeParameters();
+	InitializeGeometryParameters();
 
 	// »нициализаци€ начальных условий
 	initializeCellsInitialValues();
@@ -78,7 +78,7 @@ const double & DriftModelSolver::GetDz() const
 }
 
 
-void DriftModelSolver::InitializeParameters()
+void DriftModelSolver::InitializeGeometryParameters()
 {
 
 	size_t number_of_filled_cells = 0;
@@ -103,9 +103,6 @@ void DriftModelSolver::InitializeParameters()
 		number_of_filled_cells += number_of_cells_in_current_segment;
 	}
 
-	if (number_of_filled_cells != _n_points_cell_properties) {
-		throw "Number of initialized cells doesn't equal to number of total cells";
-	}
 }
 
 void DriftModelSolver::initializeCellsInitialValues()
@@ -210,7 +207,9 @@ std::valarray<double> DriftModelSolver::CalculateApproximateMixtureSpeed()
 
 			alpha_e[i] = 0.5 * _dt / _dz * std::max(-v_m_star_e, 0.0);
 			alpha_w[i] = 0.5 * _dt / _dz * std::max(v_m_star_w, 0.0);
-			alpha_p[i] = 1 + 0.5 * _dt / _dz * (std::max(v_m_star_e, 0.0) + std::max(-v_m_star_w, 0.0)) + _dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
+			alpha_p[i] = 1 + 0.5 * _dt / _dz * (std::max(v_m_star_e, 0.0) +
+						 std::max(-v_m_star_w, 0.0)) +
+						 _dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
 			b[i] = v_m_zero_P
 				+ _dt * _drift_model.g * cos(theta_P)
 				- _dt / _dz * (2 / (rho_m_E_stroke + rho_m_P_stroke)) * (p_E_stroke - p_P_stroke)

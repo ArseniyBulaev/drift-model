@@ -44,7 +44,7 @@ private:
 	std::valarray<double> _p; // ƒавление дисперсной среды
 
 
-	void InitializeParameters(); // »нициализаци€ векторов с параметрами скважины
+	void InitializeGeometryParameters(); // »нициализаци€ параметров скважины
 	void initializeCellsInitialValues();
 
 	int CalculateN();
