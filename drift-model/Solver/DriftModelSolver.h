@@ -27,7 +27,7 @@ private:
 	const double _dz; // Шаг по пространству
 	const double _dt; // Шаг по времени
 
-	DriftModel _drift_model; // Класс математической модели
+	MathModel::DriftModel _drift_model; // Класс математической модели
 	size_t _n_points_cell_properties; // Число точек для значений всех параметров кроме скоростей
 	size_t _n_points_cell_velocities; // Число точек для значений скоростей
 

@@ -4,12 +4,12 @@
 #include "DriftModel.h"
 
 
-double DriftModel::CalculateHydrostaticPressure(double rho, double h)
+double MathModel::DriftModel::CalculateHydrostaticPressure(double rho, double h)
 {
 	return rho * g * h;
 }
 
-double DriftModel::CalculateGasProfileParameter(double alpha_g_0, double U, double d,  double p, double dp_dz)
+double MathModel::DriftModel::CalculateGasProfileParameter(double alpha_g_0, double U, double d,  double p, double dp_dz)
 {
 	const double pi = 3.14;
 	const double g = 9.81; // Должно быть переменной, так как через него вычисляется число Фруда. В случае если занулить поле g, то будет ошибка деления на ноль
@@ -46,7 +46,7 @@ double DriftModel::CalculateGasProfileParameter(double alpha_g_0, double U, doub
 	return C_0;
 }
 
-double DriftModel::CalculateDriftVelocity(double alpha_g_0, double U, double d, double p)
+double MathModel::DriftModel::CalculateDriftVelocity(double alpha_g_0, double U, double d, double p)
 {
 	const double pi = 3.14;
 	const double g = 9.81; // Должно быть переменной, так как через него вычисляется число Фруда. В случае если занулить поле g, то будет ошибка деления на ноль
@@ -77,7 +77,7 @@ double DriftModel::CalculateDriftVelocity(double alpha_g_0, double U, double d, 
 	return v_d;
 }
 
-double DriftModel::CalculateGasProfileParameter_TEST(double alpha_g)
+double MathModel::DriftModel::CalculateGasProfileParameter_TEST(double alpha_g)
 {
 	const double C_0_0 = 1.2;
 	const double b = 0.6;
@@ -87,7 +87,7 @@ double DriftModel::CalculateGasProfileParameter_TEST(double alpha_g)
 	return C_0;
 }
 
-double DriftModel::CalculateDriftVelocity_TEST(double alpha_g)
+double MathModel::DriftModel::CalculateDriftVelocity_TEST(double alpha_g)
 {
 	const double c_l = 1500; // Скорость звука в воде
 	const double M_d = 1.5 * 1E-4;
@@ -98,59 +98,59 @@ double DriftModel::CalculateDriftVelocity_TEST(double alpha_g)
 	return v_d;
 }
 
-double DriftModel::GetMixtureDensity(double alpha_g, double alpha_l, double p)
+double MathModel::DriftModel::GetMixtureDensity(double alpha_g, double alpha_l, double p)
 {
 	return alpha_g * GetGasDensity(p) + alpha_l * GetLiquidDensity(p);
 }
 
-double DriftModel::GetMixtureVelocity(double alpha_g, double alpha_l, double v_g, double v_l)
+double MathModel::DriftModel::GetMixtureVelocity(double alpha_g, double alpha_l, double v_g, double v_l)
 {
 	return alpha_g * v_g + alpha_l * v_l;
 }
 
-double DriftModel::GetMixtureViscosity(double alpha_g)
+double MathModel::DriftModel::GetMixtureViscosity(double alpha_g)
 {
 	return 1 / (1 - alpha_g);
 }
 
-double DriftModel::GetGasDensity(double p)
+double MathModel::DriftModel::GetGasDensity(double p)
 {
 	return  GetCharacteristicGasDensity(); // Как первое приближение возвращается константа
 }
 
-double DriftModel::GetLiquidDensity(double p)
+double MathModel::DriftModel::GetLiquidDensity(double p)
 {
 	
 	return GetCharacteristicLiquidDensity(); // Как первое приближение возвращается константа
 	
 }
 
-double DriftModel::GetCharacteristicGasDensity()
+double MathModel::DriftModel::GetCharacteristicGasDensity()
 {
 	double density = 1.29; // Плотность воздуха
 	return density;
 }
 
-double DriftModel::GetCharacteristicLiquidDensity()
+double MathModel::DriftModel::GetCharacteristicLiquidDensity()
 {
 	double density = 1000.0; // Плотность слабосжимаемой жидкости
 	return density;
 }
 
-double DriftModel::GetGasViscosity()
+double MathModel::DriftModel::GetGasViscosity()
 {
 	double air_viscosity = 18.35E-6;
 	return air_viscosity;
 }
 
-double DriftModel::GetLiquidViscosity()
+double MathModel::DriftModel::GetLiquidViscosity()
 {
 	double water_viscosity = 8.9E-4; // Вязкость воды при температуре 25 градусов по цельсию
 	return water_viscosity;
 }
 
 
-double DriftModel::GetFrictionCoefficient(double alpha_g,double alpha_l, double v_m, double p, double d, double eps)
+double MathModel::DriftModel::GetFrictionCoefficient(double alpha_g,double alpha_l, double v_m, double p, double d, double eps)
 {
 	double rho_m = GetMixtureDensity(alpha_g, alpha_l, p);
 	double mu_m = GetMixtureViscosity(alpha_g);
@@ -162,37 +162,37 @@ double DriftModel::GetFrictionCoefficient(double alpha_g,double alpha_l, double 
 }
 
 
-double DriftModel::GetGSGasVolumeFractionBoundaryCondition()
+double MathModel::DriftModel::GetGSGasVolumeFractionBoundaryCondition()
 {
 	return 0.0;
 }
 
-double DriftModel::GetGSPressureBoundaryCondition()
+double MathModel::DriftModel::GetGSPressureBoundaryCondition()
 {
 	return 0.0;
 }
 
-double DriftModel::GetGSLiquidVelocityBoundaryCondition()
+double MathModel::DriftModel::GetGSLiquidVelocityBoundaryCondition()
 {
 	return 0.0;
 }
 
-double DriftModel::GetGSGasVelocityBoundaryCondition()
+double MathModel::DriftModel::GetGSGasVelocityBoundaryCondition()
 {
 	return 0.0;
 }
 
-double DriftModel::GetGSMixtureVelocityBoundaryCondition()
+double MathModel::DriftModel::GetGSMixtureVelocityBoundaryCondition()
 {
 	return 0.0;
 }
 
-double DriftModel::GetGSGasVolumeFractionInitialCondition(double L, double z)
+double MathModel::DriftModel::GetGSGasVolumeFractionInitialCondition(double L, double z)
 {
 	return z > L / 2 ? 1 : 0.0;
 }
 
-double DriftModel::GetPRCharacteristicVelocity(double p_wf, double well_bottom_cross_section_area)
+double MathModel::DriftModel::GetPRCharacteristicVelocity(double p_wf, double well_bottom_cross_section_area)
 {
 	double p_r = 3.5E+7; // Пластовое давление
 	double PI = 4.4 * 1E-11;
@@ -200,25 +200,25 @@ double DriftModel::GetPRCharacteristicVelocity(double p_wf, double well_bottom_c
 	return q / well_bottom_cross_section_area;
 }
 
-double DriftModel::GetPRCharacteristicStopTime(double p_wf, double well_bottom_cross_section_area, double well_length)
+double MathModel::DriftModel::GetPRCharacteristicStopTime(double p_wf, double well_bottom_cross_section_area, double well_length)
 {
 	double U = GetPRCharacteristicVelocity(p_wf, well_bottom_cross_section_area);
 	return well_length / U;
 }
 
-double DriftModel::GetPRLiquidVelocityBoundaryCondition(double p_wf, double well_bottom_cross_section_area)
+double MathModel::DriftModel::GetPRLiquidVelocityBoundaryCondition(double p_wf, double well_bottom_cross_section_area)
 {
 	return GetPRCharacteristicVelocity(p_wf, well_bottom_cross_section_area);
 	
 }
 
 
-double DriftModel::GetPRLiquidVolumeFractionBoundaryCondition(double v_m, double v_l) 
+double MathModel::DriftModel::GetPRLiquidVolumeFractionBoundaryCondition(double v_m, double v_l)
 {
 	return v_m / v_l;
 }
 
-double DriftModel::GetPRGasVolumeFractionInitialCondition()
+double MathModel::DriftModel::GetPRGasVolumeFractionInitialCondition()
 {
 	return 0.0;
 }
