@@ -19,6 +19,7 @@ int main() {
 	Well well = Well({ WellSegment(3000,0,0,0.1)});
 	MathModel::TaskType task_type = MathModel::TaskType::BubblesRising;
 	DriftModelSolver solver(dz, dt, well, task_type);
+
 	solver.Solve();
 
 	const double atm = 98'066.5;

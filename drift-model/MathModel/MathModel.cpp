@@ -4,12 +4,37 @@
 
 
 
-void MathModel::DriftModel::SetInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, double dz)
+void MathModel::DriftModel::SetInitialConditions(
+	std::valarray<double>& alpha_g,
+	std::valarray<double>& alpha_l,
+	std::valarray<double>& p,
+	std::valarray<double>& v_m,
+	std::valarray<double>& v_g,
+	std::valarray<double>& v_l,
+	double dz)
 {
 	switch (_task_type)
 	{
 	case MathModel::TaskType::BubblesRising:
-		SetBubblesRisingInitialConditions(alpha_g, p, v_m, dz);
+		SetBubblesRisingInitialConditions(alpha_g, alpha_l, p, v_m, v_g, v_l, dz);
+		break;
+	}
+}
+
+void MathModel::DriftModel::SetBoundaryConditions(
+	std::valarray<double>& alpha_g,
+	std::valarray<double>& alpha_l,
+	std::valarray<double>& p,
+	std::valarray<double>& v_m,
+	std::valarray<double>& v_g,
+	std::valarray<double>& v_l,
+	const Well well,
+	double t)
+{
+	switch (_task_type)
+	{
+	case MathModel::TaskType::BubblesRising:
+		SetBubblesRisingBoundaryConditions(alpha_g, alpha_l, p, v_m , v_g, v_l, well, t);
 		break;
 	}
 }
@@ -159,7 +184,6 @@ double MathModel::DriftModel::GetLiquidViscosity()
 	return water_viscosity;
 }
 
-
 double MathModel::DriftModel::GetFrictionCoefficient(double alpha_g,double alpha_l, double v_m, double p, double d, double eps)
 {
 	double rho_m = GetMixtureDensity(alpha_g, alpha_l, p);
@@ -171,26 +195,77 @@ double MathModel::DriftModel::GetFrictionCoefficient(double alpha_g,double alpha
 	return 1;
 }
 
-
-
-
-
-void MathModel::DriftModel::SetBubblesRisingInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, double dz)
+void MathModel::DriftModel::SetBubblesRisingInitialConditions(
+	std::valarray<double>& alpha_g,
+	std::valarray<double>& alpha_l,
+	std::valarray<double>& p,
+	std::valarray<double>& v_m,
+	std::valarray<double>& v_g,
+	std::valarray<double>& v_l,
+	double dz)
 {
 	for (size_t i = 0; i < alpha_g.size(); ++i)
 	{
 		alpha_g[i] = 0;
+		alpha_l[i] = 1 - alpha_g[i];
 	}
 
 	for (size_t i = 0; i < p.size(); ++i)
 	{
-		
 		p[i] = CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), i * dz);
 	}
 	
 	for (size_t i = 0; i < v_m.size(); ++i)
 	{
+		v_l[i] = 0;
+		v_g[i] = 0;
 		v_m[i] = 0;
 	}
 
+}
+
+void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
+	std::valarray<double>& alpha_g,
+	std::valarray<double>& alpha_l,
+	std::valarray<double>& p,
+	std::valarray<double>& v_m,
+	std::valarray<double>& v_g,
+	std::valarray<double>& v_l,
+	const Well well,
+	double t)
+{
+	double gas_flow = GetBubblesRisingGasFlow(t);
+	double liquid_flow = GetBubblesRisingLiquidFlow(t);
+	double S = well.GetBottomCrossSectionArea();
+
+	// √раничное условие ставитс€ на забое
+	int index_wb_velocity = v_g.size() - 1;
+	int index_wb_property = alpha_g.size() - 1;
+
+	// ”словие на объЄмную долю
+	alpha_g[index_wb_property] = gas_flow / (gas_flow + liquid_flow);
+	alpha_l[index_wb_property] = 1 - alpha_g[alpha_g.size() - 1];
+	
+	// ”словие на скорость
+	v_g[index_wb_velocity] = gas_flow / S;
+	v_l[index_wb_velocity] = liquid_flow / S;
+
+	// ѕересчЄт значений на €чейку дл€ скорости
+	double alpha_g_mid = (alpha_g[index_wb_property] + alpha_g[index_wb_property - 1]) / 2;
+	double alpha_l_mid = (alpha_l[index_wb_property] + alpha_l[index_wb_property - 1]) / 2;
+
+
+	v_m[index_wb_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_wb_velocity], v_l[index_wb_velocity]);
+}
+
+double MathModel::DriftModel::GetBubblesRisingLiquidFlow(double t)
+{
+	double flow_value = 1.0 / 3600; // 1 м^3 / час
+	return flow_value;
+}
+
+double MathModel::DriftModel::GetBubblesRisingGasFlow(double t)
+{
+	double flow_value = GetBubblesRisingLiquidFlow(t) / 20;
+	return flow_value;
 }

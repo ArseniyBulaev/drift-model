@@ -33,7 +33,9 @@ DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well, Mat
 void DriftModelSolver::Solve()
 {
 	// Инициализация начальных условий
-	_drift_model.SetInitialConditions(_alpha_g, _p, _v_m, _dz);
+	_drift_model.SetInitialConditions(_alpha_g, _alpha_l, _p, _v_m, _v_g, _v_l, _dz);
+
+
 
 	// Решение задачи методом SIMPLE
 	SimpleAlgorithm();

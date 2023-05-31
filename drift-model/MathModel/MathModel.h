@@ -26,8 +26,23 @@ namespace MathModel
 
 		#pragma region Public Methods
 		public:
-		// Вычисление гидростатического давления
-		void SetInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, double dz);
+		void SetInitialConditions(
+			std::valarray<double>& alpha_g,
+			std::valarray<double>& alpha_l,
+			std::valarray<double>& p,
+			std::valarray<double>& v_m,
+			std::valarray<double>& v_g,
+			std::valarray<double>& v_l,
+			double dz);
+		void SetBoundaryConditions(
+			std::valarray<double>& alpha_g,
+			std::valarray<double>& alpha_l,
+			std::valarray<double>& p,
+			std::valarray<double>& v_m,
+			std::valarray<double>& v_g,
+			std::valarray<double>& v_l,
+			const Well well,
+			double t);
 
 	
 		// Скорость дрейфа и параметр профиля газа
@@ -50,7 +65,7 @@ namespace MathModel
 		// Коэффициент трения
 		double GetFrictionCoefficient(double alpha_g, double alpha_l, double v_m, double p, double d, double eps);
 	
-		#pragma region CharacteristicValues
+		#pragma region Characteristic Values
 		double GetCharacteristicGasDensity();
 		double GetCharacteristicLiquidDensity();
 		#pragma endregion
@@ -60,7 +75,30 @@ namespace MathModel
 
 		#pragma region Private Methods
 		private:
-		void SetBubblesRisingInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, double dz);
+		#pragma region Bubbles Rising Task
+		void SetBubblesRisingInitialConditions(
+			std::valarray<double>& alpha_g,
+			std::valarray<double>& alpha_l,
+			std::valarray<double>& p,
+			std::valarray<double>& v_m,
+			std::valarray<double>& v_g,
+			std::valarray<double>& v_l,
+			double dz);
+		void SetBubblesRisingBoundaryConditions(
+			std::valarray<double>& alpha_g,
+			std::valarray<double>& alpha_l,
+			std::valarray<double>& p,
+			std::valarray<double>& v_m,
+			std::valarray<double>& v_g,
+			std::valarray<double>& v_l,
+			const Well well,
+			double t);
+		double GetBubblesRisingLiquidFlow(double t);
+		double GetBubblesRisingGasFlow(double t);
+		#pragma endregion
+
+		
+
 		double CalculateHydrostaticPressure(double rho, double h);
 		#pragma endregion
 
