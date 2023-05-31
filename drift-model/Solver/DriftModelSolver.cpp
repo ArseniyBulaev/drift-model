@@ -27,13 +27,13 @@ DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well, Mat
 
 	// Инициализация параметров ячеек
 	InitializeGeometryParameters();
-
-	// Инициализация начальных условий
-	initializeCellsInitialValues();
 }
 
-void DriftModelSolver::Test()
+void DriftModelSolver::Solve()
 {
+	// Инициализация начальных условий
+	_drift_model.SetInitialConditions(_alpha_g, _p, _v_m, _dz);
+
 	SIMPLE();
 }
 
@@ -105,30 +105,6 @@ void DriftModelSolver::InitializeGeometryParameters()
 
 }
 
-void DriftModelSolver::initializeCellsInitialValues()
-{
-	std::cout << _n_points_cell_properties * _dz << std::endl;
-
-	for (size_t i = 0; i < _n_points_cell_properties; ++i)
-	{
-		// Задача Восстановление давления при закрытии скважины
-		_alpha_g[i] = _drift_model.GetPRGasVolumeFractionInitialCondition();
-		_alpha_l[i] = 1 - _alpha_g[i];
-		_p[i] = i > 0 ? _p[i - 1] + _drift_model.CalculateHydrostaticPressure(_drift_model.GetMixtureDensity(_alpha_g[i], _alpha_l[i], 0), _dz) : 0.0;
-	}
-
-	
-
-	for (size_t i = 0; i < _n_points_cell_velocities; ++i)
-	{
-		// Задача Восстановление давления при закрытии скважины
-		// Скорость жидкости при установившемся течении
-		double v_steady = 0;
-		_v_g[i] = 0;
-		_v_l[i] = v_steady;
-		_v_m[i] = _v_l[i];
-	}
-}
 
 
 int DriftModelSolver::CalculateN()
@@ -266,14 +242,14 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray
 	double dp_dz;
 	double v_d, C_0;
 	double alpha_g_0 = 0;
-	double p_wf = _drift_model.CalculateHydrostaticPressure(_drift_model.GetLiquidDensity(0), _well.GetLength());
-	double U = _drift_model.GetPRCharacteristicVelocity(p_wf, _well.GetBottomCrossSectionArea());
+	//double p_wf = _drift_model.CalculateHydrostaticPressure(_drift_model.GetLiquidDensity(0), _well.GetLength());
+	//double U = _drift_model.GetPRCharacteristicVelocity(p_wf, _well.GetBottomCrossSectionArea());
 
 	for (size_t i = 0; i < _n_points_cell_velocities; ++i)
 	{
 		dp_dz = (p[i + 1] - p[i]) / _dz;
-		C_0 = _drift_model.CalculateGasProfileParameter(alpha_g_0, U, (_d[i] + _d[i + 1]) / 2, (p[i] + p[i + 1]) / 2, dp_dz);
-		v_d = _drift_model.CalculateDriftVelocity(alpha_g_0, U, (_d[i] + _d[i + 1]) / 2, (p[i] + p[i + 1]) / 2);
+		C_0 = _drift_model.CalculateGasProfileParameter(alpha_g_0, 1, (_d[i] + _d[i + 1]) / 2, (p[i] + p[i + 1]) / 2, dp_dz);
+		v_d = _drift_model.CalculateDriftVelocity(alpha_g_0, 1, (_d[i] + _d[i + 1]) / 2, (p[i] + p[i + 1]) / 2);
 		v_g[i] = C_0 * v_m[i] + v_d;
 	}
 
@@ -413,8 +389,8 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	for (size_t i = 0; i < _n_points_cell_properties; ++i)
 	{ 
 		// Величины для расчёта параметра профиля и скорости дрейфа
-		double p_wf = _drift_model.CalculateHydrostaticPressure(_drift_model.GetLiquidDensity(0), _well.GetLength());
-		double U = _drift_model.GetPRCharacteristicVelocity(p_wf, _well.GetBottomCrossSectionArea());
+		//double p_wf = _drift_model.CalculateHydrostaticPressure(_drift_model.GetLiquidDensity(0), _well.GetLength());
+		//double U = _drift_model.GetPRCharacteristicVelocity(p_wf, _well.GetBottomCrossSectionArea());
 
 		/* Текущей конечный объём */
 
@@ -444,8 +420,8 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 		
 		// Параметр профиля и скорость дрейфа
 		double dp_dz_e = i <_n_points_cell_properties - 1 ? (_p[i + 1] - _p[i]) / _dz : 0;
-		double C_0_e = _drift_model.CalculateGasProfileParameter(alpha_g_e, U, d_e, p_e, dp_dz_e);
-		double v_d_e = _drift_model.CalculateDriftVelocity(alpha_g_e, U, d_e, p_e);
+		double C_0_e = _drift_model.CalculateGasProfileParameter(alpha_g_e, 1, d_e, p_e, dp_dz_e);
+		double v_d_e = _drift_model.CalculateDriftVelocity(alpha_g_e, 1, d_e, p_e);
 
 		// Значения на левой грани контрольного объёма
 		double v_m_star_w = i > 0 ? v_m_approx[i - 1] : 0;
@@ -461,8 +437,8 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 
 		// Параметр профиля и скорость дрейфа
 		double dp_dz_w = i > 0  ? (_p[i] - _p[i - 1]) / _dz : 0;
-		double C_0_w = _drift_model.CalculateGasProfileParameter(alpha_g_w, U, d_w, p_w, dp_dz_w);
-		double v_d_w = _drift_model.CalculateDriftVelocity(alpha_g_w, U, d_w, p_w);
+		double C_0_w = _drift_model.CalculateGasProfileParameter(alpha_g_w, 1, d_w, p_w, dp_dz_w);
+		double v_d_w = _drift_model.CalculateDriftVelocity(alpha_g_w,1, d_w, p_w);
 
 
 		/* Значения в центре конечного объёма, находящегося справа от текущего */

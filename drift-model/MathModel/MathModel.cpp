@@ -1,11 +1,18 @@
-#include <stdexcept>
 #include <cmath>
 
 #include "MathModel.h"
 
 
 
-
+void MathModel::DriftModel::SetInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, double dz)
+{
+	switch (_task_type)
+	{
+	case MathModel::TaskType::BubblesRising:
+		SetBubblesRisingInitialConditions(alpha_g, p, v_m, dz);
+		break;
+	}
+}
 
 double MathModel::DriftModel::CalculateHydrostaticPressure(double rho, double h)
 {
@@ -136,7 +143,7 @@ double MathModel::DriftModel::GetCharacteristicGasDensity()
 
 double MathModel::DriftModel::GetCharacteristicLiquidDensity()
 {
-	double density = 1000.0; // Плотность слабосжимаемой жидкости
+	double density = 997; // Плотность воды
 	return density;
 }
 
@@ -224,4 +231,24 @@ double MathModel::DriftModel::GetPRLiquidVolumeFractionBoundaryCondition(double 
 double MathModel::DriftModel::GetPRGasVolumeFractionInitialCondition()
 {
 	return 0.0;
+}
+
+void MathModel::DriftModel::SetBubblesRisingInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, double dz)
+{
+	for (size_t i = 0; i < alpha_g.size(); ++i)
+	{
+		alpha_g[i] = 0;
+	}
+
+	for (size_t i = 0; i < p.size(); ++i)
+	{
+		
+		p[i] = CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), i * dz);
+	}
+	
+	for (size_t i = 0; i < v_m.size(); ++i)
+	{
+		v_m[i] = 0;
+	}
+
 }

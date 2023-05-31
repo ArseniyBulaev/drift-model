@@ -11,7 +11,7 @@ class DriftModelSolver
 {
 public:
 	DriftModelSolver(double dz, double dt, const Well& well, MathModel::TaskType task_type);
-	void Test();
+	void Solve();
 	const std::valarray<double> & GetV_m() const;
 	const std::valarray<double> & GetV_g() const;
 	const std::valarray<double> & GetV_l() const;
@@ -45,8 +45,7 @@ private:
 
 
 	void InitializeGeometryParameters(); // Инициализация параметров скважины
-	void initializeCellsInitialValues();
-
+	
 	int CalculateN();
 	
 	std::valarray<double> CalculateApproximateMixtureSpeed();
