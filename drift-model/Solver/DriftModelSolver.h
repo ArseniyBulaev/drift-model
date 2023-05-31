@@ -10,7 +10,7 @@
 class DriftModelSolver
 {
 public:
-	DriftModelSolver(double dz, double dt, const Well & well);
+	DriftModelSolver(double dz, double dt, const Well& well, MathModel::TaskType task_type);
 	void Test();
 	const std::valarray<double> & GetV_m() const;
 	const std::valarray<double> & GetV_g() const;

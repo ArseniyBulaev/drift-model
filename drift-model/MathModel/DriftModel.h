@@ -11,24 +11,21 @@ namespace MathModel
 
 	class DriftModel
 	{
+	
+	#pragma region Fields
 	public:
+	const double g = 9.81;  // Ускорение свободного падения
+	private:
+	TaskType _task_type; // Выбранная пользователем задача
+	#pragma endregion
 
-		
-		
+	#pragma region Constructor
+	public:
+	DriftModel(TaskType task_type) : _task_type(task_type) {};
+	#pragma endregion
 
-
-		#pragma region Fields
-
-		const double g = 9.81;  // Ускорение свободного падения
-		TaskType task_type; // Выбранная пользователем задача
-
-		#pragma endregion
-
-
-
-
-
-
+	#pragma region Public Methods
+	public:
 		// Вычисление гидростатического давления
 		double CalculateHydrostaticPressure(double rho, double h);
 		// Скорость дрейфа и параметр профиля газа
@@ -81,6 +78,8 @@ namespace MathModel
 
 		// Начальные условия
 		double GetPRGasVolumeFractionInitialCondition();
+	#pragma endregion
+		
 	};
 }
 

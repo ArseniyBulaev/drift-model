@@ -5,7 +5,7 @@
 
 
 
-DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well): _dz(dz), _dt(dt), _well(well)
+DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well, MathModel::TaskType task_type): _dz(dz), _dt(dt), _well(well), _drift_model(task_type)
 {
 	// Вычисление числа точек для значений всех параметров кроме скоростей по заданному шагу dz
 	_n_points_cell_properties = CalculateN();
