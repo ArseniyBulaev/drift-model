@@ -20,13 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MathModel\DriftModel.cpp" />
+    <ClCompile Include="MathModel\MathModel.cpp" />
     <ClCompile Include="Solver\DriftModelSolver.cpp" />
     <ClCompile Include="Well\Well.cpp" />
     <ClCompile Include="Well\WellSegment.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MathModel\DriftModel.h" />
+    <ClInclude Include="MathModel\MathModel.h" />
     <ClInclude Include="Solver\DriftModelSolver.h" />
     <ClInclude Include="Well\Well.h" />
     <ClInclude Include="Well\WellSegment.h" />

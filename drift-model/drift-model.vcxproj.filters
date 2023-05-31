@@ -36,7 +36,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="MathModel\DriftModel.cpp">
+    <ClCompile Include="MathModel\MathModel.cpp">
       <Filter>Исходные файлы\MathModel</Filter>
     </ClCompile>
     <ClCompile Include="Well\Well.cpp">
@@ -50,7 +50,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MathModel\DriftModel.h">
+    <ClInclude Include="MathModel\MathModel.h">
       <Filter>Файлы заголовков\MathModel</Filter>
     </ClInclude>
     <ClInclude Include="Solver\DriftModelSolver.h">

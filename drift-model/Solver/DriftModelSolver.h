@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "..\Well\Well.h"
-#include "..\MathModel\DriftModel.h"
+#include "..\MathModel\MathModel.h"
 
 
 class DriftModelSolver
