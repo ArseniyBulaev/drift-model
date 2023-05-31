@@ -46,7 +46,7 @@ private:
 
 	void InitializeGeometryParameters(); // Инициализация параметров скважины
 	
-	int CalculateN();
+	int CalculateNumberOfPoints();
 	
 	std::valarray<double> CalculateApproximateMixtureSpeed();
 	
@@ -66,6 +66,6 @@ private:
 	double CalculateLiquidImbalance(const std::valarray<double>& alpha_l, const std::valarray<double>& alpha_l_past, const std::valarray<double>& p_l, const std::valarray<double>& p_l_past, const std::valarray<double>& v_l);
 
 	void TDMA(std::valarray<double> & v, const std::valarray<double> & a, const std::valarray<double> & b, const std::valarray<double> & c, const std::valarray<double> & d);
-	void SIMPLE();
+	void SimpleAlgorithm();
 };
 

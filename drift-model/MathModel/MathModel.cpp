@@ -172,66 +172,8 @@ double MathModel::DriftModel::GetFrictionCoefficient(double alpha_g,double alpha
 }
 
 
-double MathModel::DriftModel::GetGSGasVolumeFractionBoundaryCondition()
-{
-	return 0.0;
-}
-
-double MathModel::DriftModel::GetGSPressureBoundaryCondition()
-{
-	return 0.0;
-}
-
-double MathModel::DriftModel::GetGSLiquidVelocityBoundaryCondition()
-{
-	return 0.0;
-}
-
-double MathModel::DriftModel::GetGSGasVelocityBoundaryCondition()
-{
-	return 0.0;
-}
-
-double MathModel::DriftModel::GetGSMixtureVelocityBoundaryCondition()
-{
-	return 0.0;
-}
-
-double MathModel::DriftModel::GetGSGasVolumeFractionInitialCondition(double L, double z)
-{
-	return z > L / 2 ? 1 : 0.0;
-}
-
-double MathModel::DriftModel::GetPRCharacteristicVelocity(double p_wf, double well_bottom_cross_section_area)
-{
-	double p_r = 3.5E+7; // Пластовое давление
-	double PI = 4.4 * 1E-11;
-	double q = PI * (p_r - p_wf);
-	return q / well_bottom_cross_section_area;
-}
-
-double MathModel::DriftModel::GetPRCharacteristicStopTime(double p_wf, double well_bottom_cross_section_area, double well_length)
-{
-	double U = GetPRCharacteristicVelocity(p_wf, well_bottom_cross_section_area);
-	return well_length / U;
-}
-
-double MathModel::DriftModel::GetPRLiquidVelocityBoundaryCondition(double p_wf, double well_bottom_cross_section_area)
-{
-	return GetPRCharacteristicVelocity(p_wf, well_bottom_cross_section_area);
-	
-}
 
 
-double MathModel::DriftModel::GetPRLiquidVolumeFractionBoundaryCondition(double v_m, double v_l)
-{
-	return v_m / v_l;
-}
-
-double MathModel::DriftModel::GetPRGasVolumeFractionInitialCondition()
-{
-	return 0.0;
-}
 
 void MathModel::DriftModel::SetBubblesRisingInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, double dz)
 {

@@ -7,11 +7,12 @@
 
 DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well, MathModel::TaskType task_type): _dz(dz), _dt(dt), _well(well), _drift_model(task_type)
 {
-	// Вычисление числа точек для значений всех параметров кроме скоростей по заданному шагу dz
-	_n_points_cell_properties = CalculateN();
+	// Вычисление числа точек для значений параметров
+	_n_points_cell_properties = CalculateNumberOfPoints();
 	_n_points_cell_velocities = _n_points_cell_properties - 1;
 
 	// Инициализация векторов
+	
 	// Параметры трубы
 	_theta = std::valarray<double>(_n_points_cell_properties); // Угол наклона трубы
 	_d = std::valarray<double>(_n_points_cell_properties); // Диаметр трубы
@@ -34,7 +35,8 @@ void DriftModelSolver::Solve()
 	// Инициализация начальных условий
 	_drift_model.SetInitialConditions(_alpha_g, _p, _v_m, _dz);
 
-	SIMPLE();
+	// Решение задачи методом SIMPLE
+	SimpleAlgorithm();
 }
 
 const std::valarray<double>& DriftModelSolver::GetV_m() const
@@ -107,7 +109,7 @@ void DriftModelSolver::InitializeGeometryParameters()
 
 
 
-int DriftModelSolver::CalculateN()
+int DriftModelSolver::CalculateNumberOfPoints()
 {
 	int n = 0;
 
@@ -580,7 +582,7 @@ void DriftModelSolver::TDMA(std::valarray<double> & v, const std::valarray<doubl
 
 }
 
-void DriftModelSolver::SIMPLE()
+void DriftModelSolver::SimpleAlgorithm()
 {
 	// Переменные для промежуточных вычислений
 	std::valarray<double> v_m_intermediate(0.0, _n_points_cell_velocities);
@@ -618,25 +620,9 @@ void DriftModelSolver::SIMPLE()
 	std::valarray<double> alpha_g_past;
 	std::valarray<double> alpha_l_past;
 
-	// Время закрытия скважины
-	double characteristic_stop_time = _drift_model.GetPRCharacteristicStopTime(_p[_n_points_cell_properties - 1], _well.GetBottomCrossSectionArea(), _well.GetLength());
-
 
 	do
 	{
-		if ((iteration_number * _dt) >= characteristic_stop_time)
-		{
-			// Закрытие скважины
-			_v_l[0] = 0.0;
-			_v_g[0] = 0.0;
-		}
-
-
-		// Граничные условия
-		_v_l[_n_points_cell_velocities - 1] = _drift_model.GetPRLiquidVelocityBoundaryCondition(_p[_n_points_cell_properties - 1], _well.GetBottomCrossSectionArea());
-		_alpha_l[_n_points_cell_properties - 1] = _drift_model.GetPRLiquidVolumeFractionBoundaryCondition(_v_m[_n_points_cell_velocities - 1], _v_l[_n_points_cell_velocities - 1]);
-		
-
 		if (iteration_number == 0) {
 			p_past = _p;
 			alpha_g_past = _alpha_g;
