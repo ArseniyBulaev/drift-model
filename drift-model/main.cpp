@@ -15,7 +15,7 @@ void write_to_file(const std::valarray<double> & v, const double & dz, const str
 int main() {
 
 	double dz = 10;
-	double dt = 0.5;
+	double dt = 0.00005;
 	Well well = Well({ WellSegment(3000,0,0,0.1)});
 	MathModel::TaskType task_type = MathModel::TaskType::BubblesRising;
 	DriftModelSolver solver(dz, dt, well, task_type);
