@@ -48,7 +48,7 @@ private:
 	
 	void CalculateApproximateMixtureSpeed(std::valarray<double> & v_m_intermediate);
 	
-	std::valarray<double> CalculateMixtureVelocityCorrection(const std::valarray<double> & p_corr, const std::valarray<double> & v_m_intermediate);
+	std::valarray<double> CalculateMixtureVelocityCorrection(const std::valarray<double> & p_corr);
 	
 	std::valarray<double> CalculateGasVelocity(const std::valarray<double> & p, const std::valarray<double> & v_m);
 	

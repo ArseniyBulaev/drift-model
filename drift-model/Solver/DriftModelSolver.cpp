@@ -193,6 +193,12 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 				+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 		}
 
+		// Нужно ли считать скорость в граничной ячейке ?
+		alpha_w[_n_points_cell_velocities - 1] = 0;
+		alpha_e[_n_points_cell_velocities - 1] = 0;
+		alpha_p[_n_points_cell_velocities - 1] = 1;
+		b[_n_points_cell_velocities - 1] = _v_m[_n_points_cell_velocities - 1];
+
 
 		TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
 
@@ -208,7 +214,7 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 
 }
 
-std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const std::valarray<double>& p_corr, const std::valarray<double>& v_m_intermediate)
+std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const std::valarray<double>& p_corr)
 {
 	std::valarray<double> v_corr(0.0, _n_points_cell_velocities);
 
@@ -230,6 +236,9 @@ std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const
 		// Линейная поправка
 		v_corr[i] = -2 * (_dt / (rho_m_P + rho_m_E)) * ((p_E - p_P) / _dz);
 	}
+
+	// В граничной ячейке корректировка не требуется ?
+	v_corr[_n_points_cell_velocities - 1] = 0;
 
 	return v_corr;
 }
@@ -394,6 +403,13 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 
 	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
 
+	// В граничной ячейке корректировка не требуется
+	alpha_e[_n_points_cell_properties - 1] = 0;
+	alpha_w[_n_points_cell_properties - 1] = 0;
+	alpha_p[_n_points_cell_properties - 1] = 1;
+	b[_n_points_cell_properties - 1] = 0;
+
+
 	return p_corr;
 }
 
@@ -534,7 +550,7 @@ void DriftModelSolver::SimpleAlgorithm()
 			p_intermediate = _p + alpha_p_relax * p_corr;
 
 			// Исправление скорости
-			v_m_corr = CalculateMixtureVelocityCorrection(p_corr, v_m_intermediate);
+			v_m_corr = CalculateMixtureVelocityCorrection(p_corr);
 			v_m_intermediate = v_m_intermediate + v_m_corr;
 
 			// Вычисление скорости газа
@@ -574,9 +590,8 @@ void DriftModelSolver::SimpleAlgorithm()
 
 		// INFO
 		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl;
-		system("pause");
 
-	} while (external_iteration_number *_dt <= 10);
+	} while (external_iteration_number *_dt <= 1);
 
 	
 }
