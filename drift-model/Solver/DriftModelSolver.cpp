@@ -39,7 +39,6 @@ void DriftModelSolver::Solve()
 }
 
 
-
 #pragma region To Delete
 const std::valarray<double>& DriftModelSolver::GetV_m() const
 {
@@ -79,7 +78,7 @@ const double& DriftModelSolver::GetDz() const
 }
 #pragma endregion
 
-
+#pragma region Support
 
 void DriftModelSolver::InitializeGeometryParameters()
 {
@@ -88,10 +87,10 @@ void DriftModelSolver::InitializeGeometryParameters()
 	size_t number_of_cells_in_current_segment = 0;
 	size_t index_of_current_cell = 0;
 
-	for (const WellSegment & wellSegment : _well.getSegments())
+	for (const WellSegment& wellSegment : _well.getSegments())
 	{
 		number_of_cells_in_current_segment = static_cast<int>(wellSegment.length / _dz);
-		
+
 		for (size_t i = 0; i < number_of_cells_in_current_segment; ++i)
 		{
 
@@ -112,16 +111,17 @@ int DriftModelSolver::CalculateNumberOfPoints()
 {
 	int n = 0;
 
-	for (const WellSegment & wellSegment: _well.getSegments())
+	for (const WellSegment& wellSegment : _well.getSegments())
 	{
 		n += static_cast<int>(wellSegment.length / _dz);
 	}
 
 	return n;
 }
+#pragma endregion
 
-
-std::valarray<double> DriftModelSolver::CalculateApproximateMixtureSpeed()
+#pragma region Calculation
+void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v_m_intermediate)
 {
 	// Точность
 	const double accuracy = 0.01;
@@ -131,10 +131,10 @@ std::valarray<double> DriftModelSolver::CalculateApproximateMixtureSpeed()
 	double alpha_relax = 1;
 	// Значение L2 нормы массива, состоящего из разности значений на текущем и предыдущем временных шагах
 	double l2_norm_of_difference = 0.0;
-	// Значения скорости смеси на предыдущей итерациии (В начале инициализируется значением на предыдущем временном шаге)
-	std::valarray<double> v_m_star = alpha_relax * _v_m;
-	// Значение на текущей итерации
-	std::valarray<double> v_m_current(_n_points_cell_velocities);
+
+	// Значения скорости смеси на предыдущей итерациии (Нужно для решения нелинейного уравнения)
+	std::valarray<double> v_m_star = v_m_intermediate;
+
 	// Коэффициенты в матрице
 	std::valarray<double> alpha_p(0.0, _n_points_cell_velocities);
 	std::valarray<double> alpha_e(0.0, _n_points_cell_velocities);
@@ -185,33 +185,30 @@ std::valarray<double> DriftModelSolver::CalculateApproximateMixtureSpeed()
 			alpha_e[i] = 0.5 * _dt / _dz * std::max(-v_m_star_e, 0.0);
 			alpha_w[i] = 0.5 * _dt / _dz * std::max(v_m_star_w, 0.0);
 			alpha_p[i] = 1 + 0.5 * _dt / _dz * (std::max(v_m_star_e, 0.0) +
-						 std::max(-v_m_star_w, 0.0)) +
-						 _dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
+				std::max(-v_m_star_w, 0.0)) +
+				_dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
 			b[i] = v_m_zero_P
 				+ _dt * _drift_model.g * cos(theta_P)
 				- _dt / _dz * (2 / (rho_m_E_stroke + rho_m_P_stroke)) * (p_E_stroke - p_P_stroke)
 				+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 		}
-		
 
-		TDMA(v_m_current, alpha_p, alpha_e, alpha_w, b);
+
+		TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
 
 		// Разность значений на текущем и предыдущем временных шагах
-		l2_norm_of_difference = sqrt((v_m_star - v_m_current).apply([](double value)->double {return value * value; }).sum());
+		l2_norm_of_difference = sqrt((v_m_star - v_m_intermediate).apply([](double value)->double {return value * value; }).sum());
 		convergence_predicate = l2_norm_of_difference > accuracy;
-		v_m_star = v_m_current;
+		v_m_star = v_m_intermediate;
 
 		// DEBUG
 		// std::cout << "v_m approx" << std::endl << "\t\tv_m approx L2 norm of difference :" << l2_norm_of_difference << std::endl;
 
 	} while (convergence_predicate);
 
-
-
-	return v_m_current;
 }
 
-std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const std::valarray<double>& p_corr, const std::valarray<double> & v_m_approx)
+std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const std::valarray<double>& p_corr, const std::valarray<double>& v_m_intermediate)
 {
 	std::valarray<double> v_corr(0.0, _n_points_cell_velocities);
 
@@ -229,15 +226,57 @@ std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const
 		double alpha_l_E = 1 - alpha_g_E;
 		double rho_m_E = _drift_model.GetMixtureDensity(alpha_g_E, alpha_l_E, p_E);
 
-		
+
 		// Линейная поправка
-		v_corr[i] = - 2 * ( _dt / (rho_m_P + rho_m_E)) * ((p_E - p_P) / _dz);
+		v_corr[i] = -2 * (_dt / (rho_m_P + rho_m_E)) * ((p_E - p_P) / _dz);
 	}
 
 	return v_corr;
 }
 
-std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray<double> & p, const std::valarray<double> & v_m)
+std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g)
+{
+	std::valarray<double>alpha_gas(0.0, _n_points_cell_properties);
+	// Коэффициенты
+	std::valarray<double> alpha_p(0.0, _n_points_cell_properties);
+	std::valarray<double> alpha_e(0.0, _n_points_cell_properties);
+	std::valarray<double> alpha_w(0.0, _n_points_cell_properties);
+	// Правая часть
+	std::valarray<double> b(0.0, _n_points_cell_properties);
+
+	for (size_t i = 0; i < _n_points_cell_properties; ++i)
+	{
+		// Значения на прошлом временном шаге     
+		double alpha_g_0 = _alpha_g[i];
+		double rho_g_0 = _drift_model.GetGasDensity(_p[i]);
+		// Значения на текущем временном шаге   
+		double rho_g = _drift_model.GetGasDensity(p_intermediate[i]);
+
+		// Значения на правой грани контрольного объёма     
+		double v_g_e = i < _n_points_cell_properties - 1 ? v_g[i] : 0;
+		double p_e = i < _n_points_cell_properties - 1 ? (p_intermediate[i] + p_intermediate[i + 1]) / 2 : 0;
+		double rho_g_e = _drift_model.GetGasDensity(p_e);
+		double F_e = rho_g_e * v_g_e;
+
+		// Значения на левой грани контрольно объёма     
+		double v_g_w = i > 0 ? v_g[i - 1] : 0;
+		double p_w = i > 0 ? (p_intermediate[i] + p_intermediate[i - 1]) / 2 : 0;
+		double rho_g_w = _drift_model.GetGasDensity(p_w);
+		double F_w = rho_g_w * v_g_w;
+
+		alpha_e[i] = std::max(-F_e, 0.0);
+		alpha_w[i] = std::max(F_w, 0.0);
+		alpha_p[i] = rho_g * _dz / _dt + alpha_e[i] + alpha_w[i] + F_e - F_w;
+		b[i] = alpha_g_0 * rho_g_0 * _dz / _dt;
+	}
+
+
+	TDMA(alpha_gas, alpha_p, alpha_e, alpha_w, b);
+
+	return alpha_gas;
+}
+
+std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray<double>& p, const std::valarray<double>& v_m)
 {
 	std::valarray<double>v_g;
 	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, p, _n_points_cell_velocities, _dz);
@@ -246,6 +285,117 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray
 	return v_g;
 }
 
+std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::valarray<double>& v_m_intermediate)
+{
+	// Поправка на давление
+	std::valarray<double> p_corr(0.0, _n_points_cell_properties);
+	// Коэффициенты
+	std::valarray<double> alpha_p(0.0, _n_points_cell_properties);
+	std::valarray<double> alpha_e(0.0, _n_points_cell_properties);
+	std::valarray<double> alpha_w(0.0, _n_points_cell_properties);
+	// Правая часть
+	std::valarray<double> b(0.0, _n_points_cell_properties);
+
+	// Параметр профиля и скорость дрейфа
+	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, _p, _n_points_cell_velocities, _dz);
+	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _p, _n_points_cell_velocities);
+
+	// Заполнение коэффициентов 
+	for (size_t i = 0; i < _n_points_cell_properties; ++i)
+	{
+		/* Текущей конечный объём */
+
+		// Значения в центре конечного объёма на предыдущем временном шаге
+		double alpha_g_0_P = _alpha_g[i];
+		double alpha_l_0_P = 1 - alpha_g_0_P;
+		double p_past_0_P = _p[i];
+		double rho_m_0_P = _drift_model.GetMixtureDensity(alpha_g_0_P, alpha_l_0_P, p_past_0_P);
+
+		// Значения на текущем временном шаге
+		double alpha_g_P = _alpha_g[i];
+		double alpha_l_P = 1 - alpha_g_P;
+		double p_P = _p[i];
+		double rho_m_P = _drift_model.GetMixtureDensity(alpha_g_P, alpha_l_P, p_P);
+
+		// Значения на правой грани
+
+		double v_m_star_e = i < _n_points_cell_velocities ? v_m_intermediate[i] : 0;
+		double p_e = i < _n_points_cell_properties - 1 ? (_p[i] + _p[i + 1]) / 2 : 0;
+		double alpha_g_e = i < _n_points_cell_properties - 1 ? (_alpha_g[i] + _alpha_g[i + 1]) / 2 : 0;
+		double alpha_l_e = 1 - alpha_g_e;
+		double rho_g_e = _drift_model.GetGasDensity(p_e);
+		double rho_l_e = _drift_model.GetLiquidDensity(p_e);
+		double rho_m_e = _drift_model.GetMixtureDensity(alpha_g_e, alpha_l_e, p_e);
+		double d_e = i < _n_points_cell_properties - 1 ? (_d[i] + _d[i + 1]) / 2 : 1;
+		double eps_e = i < _n_points_cell_properties - 1 ? (_eps[i] + _eps[i + 1]) / 2 : 0;
+		double f_e = _drift_model.GetFrictionCoefficient(alpha_g_e, alpha_l_e, v_m_star_e, p_e, d_e, eps_e);
+
+		// Параметр профиля и скорость дрейфа
+		double C_0_e = i < _n_points_cell_velocities ? C_0[i] : 0;
+		double v_d_e = i < _n_points_cell_velocities ? v_d[i] : 0;
+
+		// Значения на левой грани контрольного объёма
+		double v_m_star_w = i > 0 ? v_m_intermediate[i - 1] : 0;
+		double p_w = i > 0 ? (_p[i] + _p[i - 1]) / 2 : 0;
+		double alpha_g_w = i > 0 ? (_alpha_g[i] + _alpha_g[i - 1]) / 2 : 0;
+		double alpha_l_w = 1 - alpha_g_w;
+		double rho_g_w = _drift_model.GetGasDensity(p_w);
+		double rho_l_w = _drift_model.GetLiquidDensity(p_w);
+		double rho_m_w = _drift_model.GetMixtureDensity(alpha_g_w, alpha_l_w, p_w);
+		double d_w = i > 0 ? (_d[i] + _d[i - 1]) / 2 : 1;
+		double eps_w = i > 0 ? (_eps[i] + _eps[i - 1]) / 2 : 0;
+		double f_w = _drift_model.GetFrictionCoefficient(alpha_g_w, alpha_l_w, v_m_star_w, p_w, d_w, eps_w);
+
+		// Параметр профиля и скорость дрейфа
+		double C_0_w = i > 0 ? C_0[i - 1] : 0;
+		double v_d_w = i > 0 ? v_d[i - 1] : 0;
+
+
+		/* Значения в центре конечного объёма, находящегося справа от текущего */
+		double alpha_g_E = i < _n_points_cell_properties - 1 ? _alpha_g[i + 1] : 0;
+		double alpha_l_E = 1 - alpha_g_E;
+		double p_E = i < _n_points_cell_properties - 1 ? _p[i + 1] : 0;
+		double rho_m_E = i < _n_points_cell_properties - 1 ? _drift_model.GetMixtureDensity(alpha_g_E, alpha_l_E, p_E) : 0;
+
+
+
+		/* Значения в центре конечного объёма, находящегося слева от текущего */
+		double alpha_g_W = i > 0 ? _alpha_g[i - 1] : 0;
+		double alpha_l_W = 1 - alpha_g_W;
+		double p_W = i > 0 ? _p[i - 1] : 0;
+		double rho_m_W = i > 0 ? _drift_model.GetMixtureDensity(alpha_g_W, alpha_l_W, p_W) : 0;
+
+
+		// Линейная поправка к давлению
+		alpha_e[i] = (2 * _dt / (_dz * (rho_m_P + rho_m_E))) * (C_0_e * alpha_g_e * rho_g_e + (1 - alpha_g_e * C_0_e) * rho_l_e);
+		alpha_w[i] = (2 * _dt / (_dz * (rho_m_W + rho_m_P))) * (C_0_w * alpha_g_w * rho_g_w + (1 - alpha_g_w * C_0_w) * rho_l_w);
+
+
+
+		alpha_p[i] = alpha_e[i] + alpha_w[i];
+
+		b[i] = _dz / _dt * (rho_m_0_P - rho_m_P)
+			- v_d_e * alpha_g_e * rho_g_e
+			- v_m_star_e * C_0_e * alpha_g_e * rho_g_e
+			+ v_d_w * alpha_g_w * rho_g_w
+			+ v_m_star_w * C_0_w * alpha_g_w * rho_g_w
+			+ v_d_e * alpha_g_e * rho_l_e
+			- v_m_star_e * ((1 - alpha_g_e * C_0_e) * rho_l_e)
+			- v_d_w * alpha_g_w * rho_l_w
+			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
+
+		// Случай постоянной плотности
+		/*alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
+		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
+		alpha_p[i] = alpha_e[i] + alpha_w[i];
+		b[i] = v_m_star_w - v_m_star_e;*/
+
+	}
+
+	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
+
+	return p_corr;
+}
 
 std::valarray<double> DriftModelSolver::CalculateGasVelocity_TEST(const std::valarray<double>& v_m)
 {
@@ -263,191 +413,28 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocity_TEST(const std::val
 	return v_g;
 }
 
-
-std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::valarray<double>& p_current, const std::valarray<double>& v_g)
-{
-	std::valarray<double>alpha_gas(0.0, _n_points_cell_properties);
-	// Коэффициенты
-	std::valarray<double> alpha_p(0.0, _n_points_cell_properties);
-	std::valarray<double> alpha_e(0.0, _n_points_cell_properties);
-	std::valarray<double> alpha_w(0.0, _n_points_cell_properties);
-	// Правая часть
-	std::valarray<double> b(0.0, _n_points_cell_properties);
-
-	for (size_t i = 0; i < _n_points_cell_properties; ++i)
-	{
-		// Значения на прошлом временном шаге     
-		double alpha_g_0 = _alpha_g[i];
-		double rho_g_0 = _drift_model.GetGasDensity(_p[i]);
-		// Значения на текущем временном шаге   
-		double rho_g = _drift_model.GetGasDensity(p_current[i]);
-
-		// Значения на правой грани контрольного объёма     
-		double v_g_e = i < _n_points_cell_properties - 1 ? v_g[i] : 0;
-		double p_e = i < _n_points_cell_properties - 1 ? (p_current[i] + p_current[i + 1]) / 2 : 0;
-		double rho_g_e = _drift_model.GetGasDensity(p_e);
-		double F_e = rho_g_e * v_g_e;
-
-		// Значения на левой грани контрольно объёма     
-		double v_g_w = i > 0 ? v_g[i - 1] : 0;   
-		double p_w = i > 0 ? (p_current[i] + p_current[i - 1]) / 2 : 0;
-		double rho_g_w = _drift_model.GetGasDensity(p_w);
-		double F_w = rho_g_w * v_g_w;							
-
-		 alpha_e[i] = std::max(-F_e, 0.0);
-		 alpha_w[i] = std::max(F_w, 0.0);
-		 alpha_p[i] = rho_g * _dz / _dt + alpha_e[i] + alpha_w[i] + F_e - F_w;
-		 b[i] = alpha_g_0 * rho_g_0 * _dz / _dt;
-	}
-
-
-	TDMA(alpha_gas, alpha_p, alpha_e, alpha_w, b);
-
-	return alpha_gas;
-}
-
-
-
-
-std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::valarray<double> & v_m_approx, const std::valarray<double> & alpha_g_past, const std::valarray<double> & p_past)
-{
-	// Поправка на давление
-	std::valarray<double> p_corr(0.0, _n_points_cell_properties);
-	// Коэффициенты
-	std::valarray<double> alpha_p(0.0, _n_points_cell_properties);
-	std::valarray<double> alpha_e(0.0, _n_points_cell_properties);
-	std::valarray<double> alpha_w(0.0, _n_points_cell_properties);
-	// Правая часть
-	std::valarray<double> b(0.0, _n_points_cell_properties);
-
-	// Параметр профиля и скорость дрейфа
-	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, _p, _n_points_cell_velocities, _dz);
-	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _p, _n_points_cell_velocities);
-
-	// Заполнение коэффициентов 
-	for (size_t i = 0; i < _n_points_cell_properties; ++i)
-	{ 
-		// Величины для расчёта параметра профиля и скорости дрейфа
-		//double p_wf = _drift_model.CalculateHydrostaticPressure(_drift_model.GetLiquidDensity(0), _well.GetLength());
-		//double U = _drift_model.GetPRCharacteristicVelocity(p_wf, _well.GetBottomCrossSectionArea());
-
-		/* Текущей конечный объём */
-
-		// Значения в центре конечного объёма на предыдущем временном шаге
-		double alpha_g_0_P = alpha_g_past[i];
-		double alpha_l_0_P = 1 - alpha_g_0_P;
-		double p_past_0_P = p_past[i];
-		double rho_m_0_P = _drift_model.GetMixtureDensity(alpha_g_0_P, alpha_l_0_P, p_past_0_P);
-
-		// Значения на текущем временном шаге
-		double alpha_g_P = _alpha_g[i];
-		double alpha_l_P = 1 - alpha_g_P;
-		double p_P = _p[i];
-		double rho_m_P = _drift_model.GetMixtureDensity(alpha_g_P, alpha_l_P, p_P);
-
-		// Значения на правой грани
-		double v_m_star_e = i < _n_points_cell_velocities ? v_m_approx[i] : 0;
-		double p_e = i < _n_points_cell_properties - 1 ? (_p[i] + _p[i + 1]) / 2 : 0;
-		double alpha_g_e = i < _n_points_cell_properties - 1 ? (_alpha_g[i] + _alpha_g[i + 1]) / 2 : 0;
-		double alpha_l_e = 1 - alpha_g_e;
-		double rho_g_e = _drift_model.GetGasDensity(p_e);
-		double rho_l_e = _drift_model.GetLiquidDensity(p_e);
-		double rho_m_e = _drift_model.GetMixtureDensity(alpha_g_e, alpha_l_e, p_e);
-		double d_e = i < _n_points_cell_properties - 1 ? (_d[i] + _d[i + 1]) / 2 : 1;
-		double eps_e = i < _n_points_cell_properties - 1 ? (_eps[i] + _eps[i + 1]) / 2 : 0;
-		double f_e = _drift_model.GetFrictionCoefficient(alpha_g_e, alpha_l_e, v_m_star_e, p_e, d_e, eps_e);
-		
-		// Параметр профиля и скорость дрейфа
-		double C_0_e = i < _n_points_cell_velocities ? C_0[i] : 0;
-		double v_d_e = i < _n_points_cell_velocities ? v_d[i] : 0;
-
-		// Значения на левой грани контрольного объёма
-		double v_m_star_w = i > 0 ? v_m_approx[i - 1] : 0;
-		double p_w = i > 0 ? (_p[i] + _p[i - 1]) / 2 : 0;
-		double alpha_g_w = i > 0 ? (_alpha_g[i] + _alpha_g[i - 1]) / 2 : 0;
-		double alpha_l_w = 1 - alpha_g_w;
-		double rho_g_w = _drift_model.GetGasDensity(p_w);
-		double rho_l_w = _drift_model.GetLiquidDensity(p_w);
-		double rho_m_w = _drift_model.GetMixtureDensity(alpha_g_w, alpha_l_w, p_w);
-		double d_w = i > 0 ? (_d[i] + _d[i - 1]) / 2 : 1;
-		double eps_w = i > 0 ? (_eps[i] + _eps[i - 1]) / 2 : 0;
-		double f_w = _drift_model.GetFrictionCoefficient(alpha_g_w, alpha_l_w, v_m_star_w, p_w, d_w, eps_w);
-
-		// Параметр профиля и скорость дрейфа
-		double dp_dz_w = i > 0  ? (_p[i] - _p[i - 1]) / _dz : 0;
-		double C_0_w = i > 0 ? C_0[i - 1] : 0;
-		double v_d_w = i > 0 ? v_d[i - 1] : 0;
-
-
-		/* Значения в центре конечного объёма, находящегося справа от текущего */
-		double alpha_g_E = i < _n_points_cell_properties - 1? _alpha_g[i + 1]: 0;
-		double alpha_l_E = 1 - alpha_g_E;
-		double p_E = i < _n_points_cell_properties - 1 ? _p[i + 1]: 0;
-		double rho_m_E = i < _n_points_cell_properties - 1 ? _drift_model.GetMixtureDensity(alpha_g_E, alpha_l_E, p_E) : 0;
-		
-
-
-		/* Значения в центре конечного объёма, находящегося слева от текущего */
-		double alpha_g_W = i > 0 ? _alpha_g[i - 1] : 0;
-		double alpha_l_W = 1 - alpha_g_W;
-		double p_W = i > 0 ? _p[i - 1] : 0;
-		double rho_m_W = i > 0 ? _drift_model.GetMixtureDensity(alpha_g_W, alpha_l_W, p_W) : 0;
-		
-
-		// Линейная поправка к давлению
-		/*alpha_e[i] = (2 * _dt / (_dz * (rho_m_P + rho_m_E))) * (C_0_e * alpha_g_e * rho_g_e + (1 - alpha_g_e * C_0_e) * rho_l_e);
-		alpha_w[i] = (2 * _dt / (_dz * (rho_m_W + rho_m_P))) * (C_0_w * alpha_g_w * rho_g_w + (1 - alpha_g_w * C_0_w) * rho_l_w);
-
-
-
-		alpha_p[i] = alpha_e[i] + alpha_w[i];
-
-		b[i] = _dz / _dt * (rho_m_0_P - rho_m_P)
-			- v_d_e * alpha_g_e * rho_g_e
-			- v_m_star_e * C_0_e * alpha_g_e * rho_g_e
-			+ v_d_w * alpha_g_w * rho_g_w
-			+ v_m_star_w * C_0_w * alpha_g_w * rho_g_w
-			+ v_d_e * alpha_g_e * rho_l_e
-			- v_m_star_e * ((1 - alpha_g_e * C_0_e)* rho_l_e)
-			- v_d_w * alpha_g_w * rho_l_w
-			+ v_m_star_w * ((1 - alpha_g_w * C_0_w)* rho_l_w);*/
-
-		// Случай постоянной плотности
-		alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
-		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
-		alpha_p[i] = alpha_e[i] + alpha_w[i];
-		b[i] = v_m_star_w - v_m_star_e;
-
-	}
-
-	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
-
-
-	return p_corr;
-}
-
-double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alpha_g, const std::valarray<double>& alpha_g_past, const std::valarray<double>& p, const std::valarray<double>& p_past, const std::valarray<double>& v_g)
+double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate)
 {
 	double imbalance_value = 0;
 	for (size_t i = 0; i < _n_points_cell_properties; i++)
 	{
 		// Текущий конечный объём. cfv (current finite volume) 
-		double v_w_cfv = i > 0 ? v_g[i - 1] : 0;
-		double v_e_cfv = i < _n_points_cell_properties - 1 ? v_g[i] : 0;
+		double v_w_cfv = i > 0 ? v_g_intermediate[i - 1] : 0;
+		double v_e_cfv = i < _n_points_cell_properties - 1 ? v_g_intermediate[i] : 0;
 		double v_cfv = (v_w_cfv + v_e_cfv) / 2;
-		double alpha_cfv = alpha_g[i];
-		double p_cfv = p[i];
+		double alpha_cfv = alpha_g_intermediate[i];
+		double p_cfv = p_intermediate[i];
 		double rho_cfv = _drift_model.GetGasDensity(p_cfv);
 		// Текущий конечный объём (Значения на предыдущем временном шаге)
-		double alpha_cfv_past = alpha_g_past[i];
-		double p_cfv_past = p_past[i];
+		double alpha_cfv_past = _alpha_g[i];
+		double p_cfv_past = _p[i];
 		double rho_cfv_past = _drift_model.GetGasDensity(p_cfv_past);
 		// Конечный объём слева от текущего. lfv (left finite volume)
-		double v_w_lfv = i > 1 ? v_g[i - 2] : 0;
-		double v_e_lfv = (i > 0) && (i < _n_points_cell_properties - 1) ? v_g[i -1] : 0;
+		double v_w_lfv = i > 1 ? v_g_intermediate[i - 2] : 0;
+		double v_e_lfv = (i > 0) && (i < _n_points_cell_properties - 1) ? v_g_intermediate[i - 1] : 0;
 		double v_lfv = (v_w_lfv + v_e_lfv) / 2;
-		double alpha_lfv = i > 0 ? alpha_g[i - 1] : 0;
-		double p_lfv = i > 0 ? p[i - 1]: 0;
+		double alpha_lfv = i > 0 ? alpha_g_intermediate[i - 1] : 0;
+		double p_lfv = i > 0 ? p_intermediate[i - 1] : 0;
 		double rho_lfv = _drift_model.GetGasDensity(p_lfv);
 
 		// Суммарный дисбаланс 
@@ -457,9 +444,8 @@ double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alph
 	return imbalance_value;
 }
 
-
 // Метод матричной прогонки
-void DriftModelSolver::TDMA(std::valarray<double> & v, const std::valarray<double> & a, const std::valarray<double> & b, const std::valarray<double> & c, const std::valarray<double> & d)
+void DriftModelSolver::TDMA(std::valarray<double>& v, const std::valarray<double>& a, const std::valarray<double>& b, const std::valarray<double>& c, const std::valarray<double>& d)
 {
 	// Размер расчётного вектора
 	int n = static_cast<int>(v.size());
@@ -470,7 +456,7 @@ void DriftModelSolver::TDMA(std::valarray<double> & v, const std::valarray<doubl
 	// Стартовые значения коэффициентов
 	p[0] = 0;
 	q[0] = 0;
-	
+
 
 	// Вычисление коэффициентов по рекурентным формулам
 	for (size_t i = 1; i < n; ++i)
@@ -489,6 +475,11 @@ void DriftModelSolver::TDMA(std::valarray<double> & v, const std::valarray<doubl
 
 }
 
+
+#pragma endregion
+
+
+
 void DriftModelSolver::SimpleAlgorithm()
 {
 	// Переменные для промежуточных вычислений
@@ -497,8 +488,7 @@ void DriftModelSolver::SimpleAlgorithm()
 	std::valarray<double> v_g_intermediate(0.0, _n_points_cell_velocities);
 	std::valarray<double> alpha_g_intermediate(0.0, _n_points_cell_properties);
 
-	// Поправки и аппроксимация скорости смеси
-	std::valarray<double> v_m_approx;
+	// Поправки
 	std::valarray<double> p_corr;
 	std::valarray<double> v_m_corr;
 
@@ -510,88 +500,85 @@ void DriftModelSolver::SimpleAlgorithm()
 
 	// Точность
 	const double accuracy = 0.1;
-	bool norm_convergence_predicate;
 	bool imbalance_convergence_predicate;
 
 
 	// Патанкар (страница 106) 
-	double alpha_p_relax = 0.05;
+	double alpha_p_relax = 0.5;
 
 	// Номер внутренней итерации
-	int iteration_number = 0;
-
-	// Значения с предыдущей итерации
-	std::valarray<double> p_past;
-	std::valarray<double> alpha_g_past;
+	int internal_iteration_number = 0;
+	int external_iteration_number = 0;
 
 
 	do
 	{
+		// Граничные условия
 		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, 0);
 
-		if (iteration_number == 0) {
-			p_past = _p;
-			alpha_g_past = _alpha_g;
-		}
+		std::valarray<double> v_m_intermediate = _v_m;
+		std::valarray<double> p_intermediate = _p;
+		std::valarray<double> v_g_intermediate = _v_g;
+		std::valarray<double> alpha_g_intermediate = _alpha_g;
 
-		// Вычисление приближённого значения скорости смеси
-		v_m_approx =  CalculateApproximateMixtureSpeed();
+		do
+		{
 
-		// Вычисление поправки к давлению
-		p_corr = CalculatePressureCorrection(v_m_approx, alpha_g_past, p_past);
+			// Вычисление приближённого значения скорости смеси
+			CalculateApproximateMixtureSpeed(v_m_intermediate);
 
+			// Вычисление поправки к давлению
+			p_corr = CalculatePressureCorrection(v_m_intermediate);
+
+			// Исправление давления
+			p_intermediate = _p + alpha_p_relax * p_corr;
+
+			// Исправление скорости
+			v_m_corr = CalculateMixtureVelocityCorrection(p_corr, v_m_intermediate);
+			v_m_intermediate = v_m_intermediate + v_m_corr;
+
+			// Вычисление скорости газа
+			v_g_intermediate = CalculateGasVelocity(p_intermediate, v_m_intermediate);
+
+			// Вычисление объёмной доли газа
+			alpha_g_intermediate = CalculateGasVolumeFraction(p_intermediate, v_g_intermediate);
+
+			// Дисбаланс
+			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate);
+
+			// INFO
+			std::cout << "v_m, p , alpha" << std::endl;
+			std::cout << "\t\t iteration : " << internal_iteration_number << std::endl;
+			std::cout << "\t\t imbalance value : " << imbalance_value << std::endl;
+			std::cout << "\t\t v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
+			std::cout << "\t\t p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
+			std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
+
+			// Контроль сходимости
+			imbalance_convergence_predicate = abs(imbalance_value) > accuracy;
+
+			// Выполнение внутренней итерации
+			++internal_iteration_number;
+
+		} while (imbalance_convergence_predicate);
 		
+		internal_iteration_number = 0;
+		// Выполнение внешней итерации (итерацци по времени)
+		++external_iteration_number;
 
-		// Исправление давления
-		p_intermediate = _p + alpha_p_relax * p_corr;
-
-		// Исправление скорости
-		v_m_corr = CalculateMixtureVelocityCorrection(p_corr, v_m_approx);
-		v_m_intermediate = v_m_approx + v_m_corr;
-
-		// Вычисление скорости газа
-		v_g_intermediate = CalculateGasVelocity(p_intermediate, v_m_intermediate);
-
-		// Вычисление объёмной доли газа
-		alpha_g_intermediate = CalculateGasVolumeFraction(p_intermediate, v_g_intermediate);
-
-
-		// Разность значений на текущем и предыдущем временных шагах
-		l2_norm_of_difference_v_m = sqrt((v_m_intermediate - _v_m).apply([](double value)->double {return value * value; }).sum());
-		l2_norm_of_difference_p = sqrt((p_intermediate - _p).apply([](double value)->double {return value * value; }).sum());
-		l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - _alpha_g).apply([](double value)->double {return value * value; }).sum());
-
-		// Значения с предыдущей итерации
-		alpha_g_past = _alpha_g;
-		p_past = _p;
-
-		// Обновление переменных рассчитанными значениями
 		_v_m = v_m_intermediate;
 		_p = p_intermediate;
 		_v_g = v_g_intermediate;
 		_alpha_g = alpha_g_intermediate;
+		
 
-		// Дисбаланс
-		double imbalance_value = CalculateGasImbalance(_alpha_g, alpha_g_past, _p, p_past, _v_g);
+		// INFO
+		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl;
+		system("pause");
 
-		//DEBUG
-		std::cout << "v_m, p , alpha" << std::endl;
-		std::cout << "\t\t iteration : " << iteration_number << std::endl;
-		std::cout << "\t\t model time : " << _dt * iteration_number << " sec." << std::endl;
-		std::cout << "\t\t imbalance value : " << imbalance_value << std::endl;
-		std::cout << "\t\t v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
-		std::cout << "\t\t p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
-		std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
+	} while (external_iteration_number *_dt <= 10);
 
-		// Контроль сходимости
-		norm_convergence_predicate = (l2_norm_of_difference_v_m > accuracy) || (l2_norm_of_difference_p > accuracy) || (l2_norm_of_difference_alpha_g > accuracy);
-		imbalance_convergence_predicate = abs(imbalance_value) > accuracy;
-
-		// Выполнение итерации
-		++iteration_number;
-		//system("pause");
-
-	} while (imbalance_convergence_predicate);
+	
 }
 
 

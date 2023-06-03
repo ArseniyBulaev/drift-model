@@ -46,19 +46,19 @@ private:
 	
 	int CalculateNumberOfPoints();
 	
-	std::valarray<double> CalculateApproximateMixtureSpeed();
+	void CalculateApproximateMixtureSpeed(std::valarray<double> & v_m_intermediate);
 	
-	std::valarray<double> CalculateMixtureVelocityCorrection(const std::valarray<double> & p_corr, const std::valarray<double> & v_m_approx);
+	std::valarray<double> CalculateMixtureVelocityCorrection(const std::valarray<double> & p_corr, const std::valarray<double> & v_m_intermediate);
 	
 	std::valarray<double> CalculateGasVelocity(const std::valarray<double> & p, const std::valarray<double> & v_m);
 	
-	std::valarray<double> CalculateGasVolumeFraction(const std::valarray<double>& p_current, const std::valarray<double>& v_g);
-	std::valarray<double> CalculatePressureCorrection(const std::valarray<double> & v_m_approx, const std::valarray<double> & alpha_g_past, const std::valarray<double> & p_past);
+	std::valarray<double> CalculateGasVolumeFraction(const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g);
+	std::valarray<double> CalculatePressureCorrection(const std::valarray<double> & v_m_intermediate);
 
 	// TEST
 	std::valarray<double> CalculateGasVelocity_TEST(const std::valarray<double> & v_m);
 
-	double CalculateGasImbalance(const std::valarray<double>& alpha_g, const std::valarray<double>& alpha_g_past, const std::valarray<double>& p_g, const std::valarray<double>& p_g_past, const std::valarray<double>& v_g);
+	double CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate);
 	
 
 	void TDMA(std::valarray<double> & v, const std::valarray<double> & a, const std::valarray<double> & b, const std::valarray<double> & c, const std::valarray<double> & d);
