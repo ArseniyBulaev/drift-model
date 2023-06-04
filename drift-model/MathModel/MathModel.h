@@ -52,7 +52,7 @@ namespace MathModel
 			std::valarray<double>& v_g,
 			std::valarray<double>& v_l,
 			const Well well,
-			double t);
+			double dt);
 
 	
 		// Скорость дрейфа и параметр профиля газа
@@ -103,10 +103,10 @@ namespace MathModel
 			std::valarray<double>& v_g,
 			std::valarray<double>& v_l,
 			const Well well,
-			double t);
+			double dt);
 
-		double GetBubblesRisingLiquidFlow(double t);
-		double GetBubblesRisingGasFlow(double t);
+		double GetBubblesRisingLiquidFlow(double dt);
+		double GetBubblesRisingGasFlow(double dt);
 		void SetBubblesRisingCharacteristicVelocity(Well well);
 		void SetBubblesRisingCharacteristicGasVolumeFraction();
 		#pragma endregion

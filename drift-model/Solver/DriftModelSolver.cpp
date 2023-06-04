@@ -123,17 +123,10 @@ int DriftModelSolver::CalculateNumberOfPoints()
 #pragma region Calculation
 void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v_m_intermediate)
 {
-	// Точность
-	const double accuracy = 0.01;
-	// Условие сходимости
-	bool convergence_predicate;
-	// Коэффициент релаксации (Патанкар стр. 106)
-	double alpha_relax = 1;
-	// Значение L2 нормы массива, состоящего из разности значений на текущем и предыдущем временных шагах
-	double l2_norm_of_difference = 0.0;
+
 
 	// Значения скорости смеси на предыдущей итерациии (Нужно для решения нелинейного уравнения)
-	std::valarray<double> v_m_star = v_m_intermediate;
+	const std::valarray<double> & v_m_star = v_m_intermediate;
 
 	// Коэффициенты в матрице
 	std::valarray<double> alpha_p(0.0, _n_points_cell_velocities);
@@ -143,74 +136,67 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 	std::valarray<double> b(0.0, _n_points_cell_velocities);
 
 
-	do
+
+	for (size_t i = 0; i < _n_points_cell_velocities; i++)
 	{
-		for (size_t i = 0; i < _n_points_cell_velocities; i++)
-		{
-			// Значения в точке P' (давление и остальные параметры)
-			double p_P_stroke = _p[i];
-			double alpha_g_P_stroke = _alpha_g[i];
-			double alpha_l_P_stroke = 1 - alpha_g_P_stroke;
-			double rho_m_P_stroke = _drift_model.GetMixtureDensity(alpha_g_P_stroke, alpha_l_P_stroke, p_P_stroke);
-			// Значения в точке W' (давление и остальные параметры)
-			double p_W_stroke = _p[i + 1];
-			double alpha_g_W_stroke = _alpha_g[i + 1];
-			double alpha_l_W_stroke = 1 - alpha_g_W_stroke;
-			double rho_m_W_stroke = _drift_model.GetMixtureDensity(alpha_g_W_stroke, alpha_l_W_stroke, p_W_stroke);
-			// Значения в точке E' (давление и остальные параметры)
-			double p_E_stroke = i > 0 ? _p[i - 1] : 0;
-			double alpha_g_E_stroke = i > 0 ? _alpha_g[i - 1] : 0;
-			double alpha_l_E_stroke = 1 - alpha_g_E_stroke;
-			double rho_m_E_stroke = _drift_model.GetMixtureDensity(alpha_g_E_stroke, alpha_l_E_stroke, p_E_stroke);
-			// Значения в точке P
-			double v_m_star_P = v_m_star[i];
-			double v_m_zero_P = _v_m[i];
-			double p_P = (p_E_stroke + p_P_stroke) / 2;
-			double alpha_g_P = _alpha_g[i];
-			double alpha_l_P = 1 - alpha_g_P;
-			double rho_m_P = _drift_model.GetMixtureDensity(alpha_g_P, alpha_l_P, p_P);
-			double eps_P = _eps[i];
-			double d_P = _d[i];
-			double theta_P = _theta[i];
-			double f_star_P = _drift_model.GetFrictionCoefficient(alpha_g_P, alpha_l_P, v_m_star_P, p_P, d_P, eps_P);
-			// Значения в точке W
-			double v_m_star_W = i > 0 ? v_m_star[i - 1] : 0;
-			// Значения в точке E
-			double v_m_star_E = i < _n_points_cell_velocities - 1 ? v_m_star[i + 1] : 0;
-			// Значения на правой грани (e) конечного объёма для точки P
-			double v_m_star_e = (v_m_star_P + v_m_star_E) / 2;
-			// Значения на левой грани (w) конечного объёма для точки P
-			double v_m_star_w = (v_m_star_W + v_m_star_P) / 2;
+		// Значения в точке P' (давление и остальные параметры)
+		double p_P_stroke = _p[i];
+		double alpha_g_P_stroke = _alpha_g[i];
+		double alpha_l_P_stroke = 1 - alpha_g_P_stroke;
+		double rho_m_P_stroke = _drift_model.GetMixtureDensity(alpha_g_P_stroke, alpha_l_P_stroke, p_P_stroke);
+		// Значения в точке W' (давление и остальные параметры)
+		double p_W_stroke = _p[i + 1];
+		double alpha_g_W_stroke = _alpha_g[i + 1];
+		double alpha_l_W_stroke = 1 - alpha_g_W_stroke;
+		double rho_m_W_stroke = _drift_model.GetMixtureDensity(alpha_g_W_stroke, alpha_l_W_stroke, p_W_stroke);
+		// Значения в точке E' (давление и остальные параметры)
+		double p_E_stroke = i > 0 ? _p[i - 1] : 0;
+		double alpha_g_E_stroke = i > 0 ? _alpha_g[i - 1] : 0;
+		double alpha_l_E_stroke = 1 - alpha_g_E_stroke;
+		double rho_m_E_stroke = _drift_model.GetMixtureDensity(alpha_g_E_stroke, alpha_l_E_stroke, p_E_stroke);
+		// Значения в точке P
+		double v_m_star_P = v_m_star[i];
+		double v_m_zero_P = _v_m[i];
+		double p_P = (p_E_stroke + p_P_stroke) / 2;
+		double alpha_g_P = _alpha_g[i];
+		double alpha_l_P = 1 - alpha_g_P;
+		double rho_m_P = _drift_model.GetMixtureDensity(alpha_g_P, alpha_l_P, p_P);
+		double eps_P = _eps[i];
+		double d_P = _d[i];
+		double theta_P = _theta[i];
+		double f_star_P = _drift_model.GetFrictionCoefficient(alpha_g_P, alpha_l_P, v_m_star_P, p_P, d_P, eps_P);
+		// Значения в точке W
+		double v_m_star_W = i > 0 ? v_m_star[i - 1] : 0;
+		// Значения в точке E
+		double v_m_star_E = i < _n_points_cell_velocities - 1 ? v_m_star[i + 1] : 0;
+		// Значения на правой грани (e) конечного объёма для точки P
+		double v_m_star_e = (v_m_star_P + v_m_star_E) / 2;
+		// Значения на левой грани (w) конечного объёма для точки P
+		double v_m_star_w = (v_m_star_W + v_m_star_P) / 2;
 
-			alpha_e[i] = 0.5 * _dt / _dz * std::max(-v_m_star_e, 0.0);
-			alpha_w[i] = 0.5 * _dt / _dz * std::max(v_m_star_w, 0.0);
-			alpha_p[i] = 1 + 0.5 * _dt / _dz * (std::max(v_m_star_e, 0.0) +
-				std::max(-v_m_star_w, 0.0)) +
-				_dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
-			b[i] = v_m_zero_P
-				+ _dt * _drift_model.g * cos(theta_P)
-				- _dt / _dz * (2 / (rho_m_E_stroke + rho_m_P_stroke)) * (p_E_stroke - p_P_stroke)
-				+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
-		}
+		alpha_e[i] = 0.5 * _dt / _dz * std::max(-v_m_star_e, 0.0);
+		alpha_w[i] = 0.5 * _dt / _dz * std::max(v_m_star_w, 0.0);
+		alpha_p[i] = 1 + 0.5 * _dt / _dz * (std::max(v_m_star_e, 0.0) +
+			std::max(-v_m_star_w, 0.0)) +
+			_dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
+		b[i] = v_m_zero_P
+			+ _dt * _drift_model.g * cos(theta_P)
+			- _dt / _dz * (2 / (rho_m_E_stroke + rho_m_P_stroke)) * (p_E_stroke - p_P_stroke)
+			+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 
-		// Нужно ли считать скорость в граничной ячейке ?
-		alpha_w[_n_points_cell_velocities - 1] = 0;
-		alpha_e[_n_points_cell_velocities - 1] = 0;
-		alpha_p[_n_points_cell_velocities - 1] = 1;
-		b[_n_points_cell_velocities - 1] = _v_m[_n_points_cell_velocities - 1];
+		// Релаксация для скорости (Фиолетовая книжка. страница 145)
+		double alpha_u_relax = 0.6; // Коэффициент релаксации
+		alpha_p[i] /= alpha_u_relax;
+		b[i] += (1 - alpha_u_relax) * alpha_p[i] * v_m_intermediate[i];
+	}
 
+	// Нужно ли считать скорость в граничной ячейке ?
+	alpha_w[_n_points_cell_velocities - 1] = 0;
+	alpha_e[_n_points_cell_velocities - 1] = 0;
+	alpha_p[_n_points_cell_velocities - 1] = 1;
+	b[_n_points_cell_velocities - 1] = _v_m[_n_points_cell_velocities - 1];
 
-		TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
-
-		// Разность значений на текущем и предыдущем временных шагах
-		l2_norm_of_difference = sqrt((v_m_star - v_m_intermediate).apply([](double value)->double {return value * value; }).sum());
-		convergence_predicate = l2_norm_of_difference > accuracy;
-		v_m_star = v_m_intermediate;
-
-		// DEBUG
-		// std::cout << "v_m approx" << std::endl << "\t\tv_m approx L2 norm of difference :" << l2_norm_of_difference << std::endl;
-
-	} while (convergence_predicate);
+	TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
 
 }
 
@@ -498,11 +484,6 @@ void DriftModelSolver::TDMA(std::valarray<double>& v, const std::valarray<double
 
 void DriftModelSolver::SimpleAlgorithm()
 {
-	// Переменные для промежуточных вычислений
-	std::valarray<double> v_m_intermediate(0.0, _n_points_cell_velocities);
-	std::valarray<double> p_intermediate(0.0, _n_points_cell_properties);
-	std::valarray<double> v_g_intermediate(0.0, _n_points_cell_velocities);
-	std::valarray<double> alpha_g_intermediate(0.0, _n_points_cell_properties);
 
 	// Поправки
 	std::valarray<double> p_corr;
@@ -515,31 +496,32 @@ void DriftModelSolver::SimpleAlgorithm()
 	double l2_norm_of_difference_alpha_g = 0.0;
 
 	// Точность
-	const double accuracy = 0.1;
+	const double accuracy = 0.01;
 	bool imbalance_convergence_predicate;
 
 
 	// Патанкар (страница 106) 
-	double alpha_p_relax = 0.5;
+	double alpha_p_relax = 0.6;
 
 	// Номер внутренней итерации
 	int internal_iteration_number = 0;
 	int external_iteration_number = 0;
 
+	// Промежуточные вычисления
+	std::valarray<double> v_m_intermediate = _v_m;
+	std::valarray<double> p_intermediate = _p;
+	std::valarray<double> v_g_intermediate = _v_g;
+	std::valarray<double> alpha_g_intermediate = _alpha_g;
+
 
 	do
 	{
 		// Граничные условия
-		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, 0);
+		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
 
-		std::valarray<double> v_m_intermediate = _v_m;
-		std::valarray<double> p_intermediate = _p;
-		std::valarray<double> v_g_intermediate = _v_g;
-		std::valarray<double> alpha_g_intermediate = _alpha_g;
 
 		do
 		{
-
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureSpeed(v_m_intermediate);
 
@@ -547,7 +529,7 @@ void DriftModelSolver::SimpleAlgorithm()
 			p_corr = CalculatePressureCorrection(v_m_intermediate);
 
 			// Исправление давления
-			p_intermediate = _p + alpha_p_relax * p_corr;
+			p_intermediate = p_intermediate + alpha_p_relax * p_corr;
 
 			// Исправление скорости
 			v_m_corr = CalculateMixtureVelocityCorrection(p_corr);
@@ -591,7 +573,7 @@ void DriftModelSolver::SimpleAlgorithm()
 		// INFO
 		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl;
 
-	} while (external_iteration_number *_dt <= 1);
+	} while (external_iteration_number *_dt <= 10);
 
 	
 }

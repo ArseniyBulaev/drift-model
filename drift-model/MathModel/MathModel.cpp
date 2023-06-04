@@ -27,12 +27,12 @@ void MathModel::DriftModel::SetBoundaryConditions(
 	std::valarray<double>& v_g,
 	std::valarray<double>& v_l,
 	const Well well,
-	double t)
+	double dt)
 {
 	switch (_task_type)
 	{
 	case MathModel::TaskType::BubblesRising:
-		SetBubblesRisingBoundaryConditions(alpha_g, p, v_m , v_g, v_l, well, t);
+		SetBubblesRisingBoundaryConditions(alpha_g, p, v_m , v_g, v_l, well, dt);
 		break;
 	}
 }
@@ -233,10 +233,10 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	std::valarray<double>& v_g,
 	std::valarray<double>& v_l,
 	const Well well,
-	double t)
+	double dt)
 {
-	double gas_flow = GetBubblesRisingGasFlow(t);
-	double liquid_flow = GetBubblesRisingLiquidFlow(t);
+	double gas_flow = GetBubblesRisingGasFlow(dt);
+	double liquid_flow = GetBubblesRisingLiquidFlow(dt);
 	double S = well.GetBottomCrossSectionArea();
 
 	// Граничное условие ставится на забое
@@ -258,28 +258,28 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	v_m[index_wb_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_wb_velocity], v_l[index_wb_velocity]);
 }
 
-double MathModel::DriftModel::GetBubblesRisingLiquidFlow(double t)
+double MathModel::DriftModel::GetBubblesRisingLiquidFlow(double dt)
 {
 	double flow_value = 1.0 / 3600; // 1 м^3 / час
-	return flow_value;
+	return flow_value * dt;
 }
 
-double MathModel::DriftModel::GetBubblesRisingGasFlow(double t)
+double MathModel::DriftModel::GetBubblesRisingGasFlow(double dt)
 {
-	double flow_value = GetBubblesRisingLiquidFlow(t) / 20;
+	double flow_value = GetBubblesRisingLiquidFlow(dt) / 20;
 	return flow_value;
 }
 
 void MathModel::DriftModel::SetBubblesRisingCharacteristicVelocity(Well well)
 {
-	double gas_velocity = GetBubblesRisingGasFlow(0) / well.GetBottomCrossSectionArea();
-	double liquid_velocity = GetBubblesRisingLiquidFlow(0) / well.GetBottomCrossSectionArea();
+	double gas_velocity = GetBubblesRisingGasFlow(1) / well.GetBottomCrossSectionArea();
+	double liquid_velocity = GetBubblesRisingLiquidFlow(1) / well.GetBottomCrossSectionArea();
 	_U =  std::max(gas_velocity, liquid_velocity);
 }
 
 void MathModel::DriftModel::SetBubblesRisingCharacteristicGasVolumeFraction()
 {
-	double gas_flow = GetBubblesRisingGasFlow(0);
-	double liquid_flow = GetBubblesRisingLiquidFlow(0);
+	double gas_flow = GetBubblesRisingGasFlow(1);
+	double liquid_flow = GetBubblesRisingLiquidFlow(1);
 	_alpha_g_0 = gas_flow / (gas_flow + liquid_flow);
 }
