@@ -43,12 +43,11 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 
 	double rho_l_0 = GetCharacteristicLiquidDensity(); // Характерная плотность жидкости
 	double rho_g_0 = GetCharacteristicGasDensity(); // Характерная плотность газа
-	std::valarray<double> p_dimensionless = p / (rho_l_0 * _U * _U); // Безразмерное давление
 	double dz_dimensionless = dz / _L; // Безразмерный шаг по пространству
 
 	for (size_t i = 0; i < n_points_cell_velocities; ++i)
 	{
-		double R = (d[i] + d[i + 1]) / 2; // Радиус трубы
+		double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
 
 		// Промежуточные переменные
 		const double pi = 3.14;
@@ -66,7 +65,9 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 		double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
 		double rho_l = GetLiquidDensity(p[i]) / rho_l_0; //Безразмерная Текущая плотность жидкости
 		double rho_g = GetGasDensity(p[i]) / rho_g_0; // Безразмерная Текущая плотность газа
-		double dp_dz = (p_dimensionless[i + 1] - p_dimensionless[i]) / dz_dimensionless; // Безразмерный градиент давления
+		double eps = R / _L; // Малый параметр (Приближение длинного канала)
+
+		double dp_dz = eps * Re * (p[i + 1] - p[i]) / dz_dimensionless; // Безразмерный градиент давления
 		
 
 		// Переменные в формуле
