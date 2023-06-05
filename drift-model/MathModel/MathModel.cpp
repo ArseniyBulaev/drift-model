@@ -52,7 +52,7 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 
 		// Промежуточные переменные
 		const double pi = 3.14;
-		double r_0 = 0.5 * R; // Половина трубы заполнена пузырьками
+		double r_0 = 0.1 * R; // Заполнение трубы пузырьками
 		double x_0 = r_0 / R; // Доля радиуса трубы, по которой течёт газ
 		double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
 		const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
