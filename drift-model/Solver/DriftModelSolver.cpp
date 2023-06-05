@@ -380,10 +380,10 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
 
 		// Случай постоянной плотности
-	/*	alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
+		alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
 		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
-		b[i] = v_m_star_w - v_m_star_e;*/
+		b[i] = v_m_star_w - v_m_star_e;
 
 	}
 
@@ -499,7 +499,7 @@ void DriftModelSolver::SimpleAlgorithm()
 
 
 	// Патанкар (страница 106) 
-	double alpha_p_relax = 0.6;
+	double alpha_p_relax = 0.1;
 
 	// Номер внутренней итерации
 	int internal_iteration_number = 0;
@@ -574,7 +574,7 @@ void DriftModelSolver::SimpleAlgorithm()
 		std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_of_alpha_g << std::endl;
 		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
 
-	} while (l2_norm_of_difference_of_alpha_g >= accuracy);
+	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 1);
 
 	
 }
