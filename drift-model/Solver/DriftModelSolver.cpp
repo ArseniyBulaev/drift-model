@@ -137,7 +137,7 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 
 
 
-	for (size_t i = 0; i < _n_points_cell_velocities; i++)
+	for (int i = 0; i < _n_points_cell_velocities; i++)
 	{
 		// Значения в точке P' (давление и остальные параметры)
 		double p_P_stroke = _p[i];
@@ -204,7 +204,7 @@ std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const
 {
 	std::valarray<double> v_corr(0.0, _n_points_cell_velocities);
 
-	for (size_t i = 0; i < _n_points_cell_velocities; ++i)
+	for (int i = 0; i < _n_points_cell_velocities; ++i)
 	{
 		// Значения в текущей точке
 		double p_P = p_corr[i];
@@ -239,7 +239,7 @@ std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::va
 	// Правая часть
 	std::valarray<double> b(0.0, _n_points_cell_properties);
 
-	for (size_t i = 0; i < _n_points_cell_properties; ++i)
+	for (int i = 0; i < _n_points_cell_properties; ++i)
 	{
 		// Значения на прошлом временном шаге     
 		double alpha_g_0 = _alpha_g[i];
@@ -296,7 +296,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _p, _n_points_cell_velocities);
 
 	// Заполнение коэффициентов 
-	for (size_t i = 0; i < _n_points_cell_properties; ++i)
+	for (int i = 0; i < _n_points_cell_properties; ++i)
 	{
 		/* Текущей конечный объём */
 
