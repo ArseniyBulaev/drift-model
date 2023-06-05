@@ -180,7 +180,7 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 			std::max(-v_m_star_w, 0.0)) +
 			_dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
 		b[i] = v_m_zero_P
-			+ _dt * _drift_model.g * cos(theta_P)
+			- _dt * _drift_model.g * cos(theta_P)
 			- _dt / _dz * (2 / (rho_m_E_stroke + rho_m_P_stroke)) * (p_E_stroke - p_P_stroke)
 			+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 

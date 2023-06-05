@@ -248,8 +248,8 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	alpha_g[index_wb_property] = gas_flow / (gas_flow + liquid_flow);
 	
 	// ”словие на скорость
-	v_g[index_wb_velocity] = - gas_flow / S;
-	v_l[index_wb_velocity] = - liquid_flow / S;
+	v_g[index_wb_velocity] = gas_flow / S;
+	v_l[index_wb_velocity] = liquid_flow / S;
 
 	// ѕересчЄт значений на €чейку дл€ скорости
 	double alpha_g_mid = (alpha_g[index_wb_property] + alpha_g[index_wb_property - 1]) / 2;
