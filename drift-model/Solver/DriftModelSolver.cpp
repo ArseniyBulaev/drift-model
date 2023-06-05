@@ -418,29 +418,22 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocity_TEST(const std::val
 double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate)
 {
 	double imbalance_value = 0;
-	for (size_t i = 0; i < _n_points_cell_properties; i++)
+	for (int i = 1; i < _n_points_cell_properties; i++)
 	{
-		// Текущий конечный объём. cfv (current finite volume) 
-		double v_w_cfv = i > 0 ? v_g_intermediate[i - 1] : 0;
-		double v_e_cfv = i < _n_points_cell_properties - 1 ? v_g_intermediate[i] : 0;
-		double v_cfv = (v_w_cfv + v_e_cfv) / 2;
-		double alpha_cfv = alpha_g_intermediate[i];
-		double p_cfv = p_intermediate[i];
-		double rho_cfv = _drift_model.GetGasDensity(p_cfv);
-		// Текущий конечный объём (Значения на предыдущем временном шаге)
-		double alpha_cfv_past = _alpha_g[i];
-		double p_cfv_past = _p[i];
-		double rho_cfv_past = _drift_model.GetGasDensity(p_cfv_past);
-		// Конечный объём слева от текущего. lfv (left finite volume)
-		double v_w_lfv = i > 1 ? v_g_intermediate[i - 2] : 0;
-		double v_e_lfv = (i > 0) && (i < _n_points_cell_properties - 1) ? v_g_intermediate[i - 1] : 0;
-		double v_lfv = (v_w_lfv + v_e_lfv) / 2;
-		double alpha_lfv = i > 0 ? alpha_g_intermediate[i - 1] : 0;
-		double p_lfv = i > 0 ? p_intermediate[i - 1] : 0;
-		double rho_lfv = _drift_model.GetGasDensity(p_lfv);
+		// Точка P
+		double rho_g_P = _drift_model.GetGasDensity(p_intermediate[i]);
+		double alpha_g_P = alpha_g_intermediate[i];
+		double v_g_P = (v_g_intermediate[i - 1] + (i < _n_points_cell_properties - 1 ?  v_g_intermediate[i] : 0)) / 2;
+		double rho_g_o_P = _drift_model.GetGasDensity(_p[i]);
+		double alpha_g_o_P = _alpha_g[i];
+
+		// Точка W
+		double rho_g_W = _drift_model.GetGasDensity(p_intermediate[i - 1]);
+		double alpha_g_W = alpha_g_intermediate[i - 1];
+		double v_g_W = ((i - 2 > 0 ? v_g_intermediate[i - 2] : 0) + v_g_intermediate[i - 1]) / 2;
 
 		// Суммарный дисбаланс 
-		imbalance_value += (alpha_cfv * rho_cfv - alpha_cfv_past * rho_cfv_past) / _dt + (alpha_cfv * rho_cfv * v_cfv - alpha_lfv * rho_lfv * v_lfv) / _dz;
+		imbalance_value += (rho_g_P * alpha_g_P - rho_g_o_P * alpha_g_o_P) / _dt + (rho_g_P * alpha_g_P * v_g_P - rho_g_W * alpha_g_W * v_g_W) / _dz;
 	}
 
 	return imbalance_value;
