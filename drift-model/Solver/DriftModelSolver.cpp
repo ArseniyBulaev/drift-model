@@ -380,7 +380,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
 
 		// Случай постоянной плотности
-		/*alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
+	/*	alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
 		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
 		b[i] = v_m_star_w - v_m_star_e;*/
@@ -491,9 +491,7 @@ void DriftModelSolver::SimpleAlgorithm()
 
 
 	// Значения нормы разности векторов решений на текущем и предыдущем временных шагах
-	double l2_norm_of_difference_v_m = 0.0;
-	double l2_norm_of_difference_p = 0.0;
-	double l2_norm_of_difference_alpha_g = 0.0;
+	double l2_norm_of_difference_of_alpha_g = 0.0;
 
 	// Точность
 	const double accuracy = 0.01;
@@ -545,12 +543,9 @@ void DriftModelSolver::SimpleAlgorithm()
 			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate);
 
 			// INFO
-			std::cout << "v_m, p , alpha" << std::endl;
-			std::cout << "\t\t iteration : " << internal_iteration_number << std::endl;
-			std::cout << "\t\t imbalance value : " << imbalance_value << std::endl;
-			std::cout << "\t\t v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
-			std::cout << "\t\t p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
-			std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
+			
+			std::cout << "iteration : " << internal_iteration_number << std::endl;
+			std::cout << "imbalance value : " << imbalance_value << std::endl;
 
 			// Контроль сходимости
 			imbalance_convergence_predicate = abs(imbalance_value) > accuracy;
@@ -564,16 +559,22 @@ void DriftModelSolver::SimpleAlgorithm()
 		// Выполнение внешней итерации (итерацци по времени)
 		++external_iteration_number;
 
+		// Вычисление нормы для проверки на сходимость
+		l2_norm_of_difference_of_alpha_g = sqrt((_alpha_g - alpha_g_intermediate).apply([](double value)->double {return value * value; }).sum());
+		
+
 		_v_m = v_m_intermediate;
 		_p = p_intermediate;
 		_v_g = v_g_intermediate;
 		_alpha_g = alpha_g_intermediate;
 		
+		
 
 		// INFO
-		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl;
+		std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_of_alpha_g << std::endl;
+		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
 
-	} while (external_iteration_number *_dt <= 10);
+	} while (l2_norm_of_difference_of_alpha_g >= accuracy);
 
 	
 }
