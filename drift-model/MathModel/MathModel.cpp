@@ -90,7 +90,7 @@ std::valarray<double> MathModel::DriftModel::CalculateV_d(const std::valarray<do
 	for (size_t i = 0; i < n_points_cell_velocities; ++i)
 	{
 		const double pi = 3.14;
-		double R = (d[i] + d[i + 1]) / 2; // Радиус трубы
+		double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
 		double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
 		const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
 		double r_b = r_b0; // Как первое приближение взята константа. Должна быть расчётная формула
