@@ -473,7 +473,7 @@ void DriftModelSolver::SimpleAlgorithm()
 		// Граничные условия
 		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
 
-		_results_writer.WriteToFile(_p, _dz, "p.txt");
+		
 
 		do
 		{
@@ -533,7 +533,10 @@ void DriftModelSolver::SimpleAlgorithm()
 
 	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 1);
 
-	
+	_results_writer.WriteToFile(_p, _dz, "p.txt");
+	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");
+	// system("python Results\\plot.py p.txt");
+	// system("pause");
 }
 
 
