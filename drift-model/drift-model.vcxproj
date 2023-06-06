@@ -24,12 +24,14 @@
     <ClCompile Include="Solver\DriftModelSolver.cpp" />
     <ClCompile Include="Well\Well.cpp" />
     <ClCompile Include="Well\WellSegment.cpp" />
+    <ClCompile Include="Writer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MathModel\MathModel.h" />
     <ClInclude Include="Solver\DriftModelSolver.h" />
     <ClInclude Include="Well\Well.h" />
     <ClInclude Include="Well\WellSegment.h" />
+    <ClInclude Include="Writer.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

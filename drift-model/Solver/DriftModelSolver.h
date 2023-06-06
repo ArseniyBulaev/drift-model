@@ -5,6 +5,7 @@
 
 #include "..\Well\Well.h"
 #include "..\MathModel\MathModel.h"
+#include"..\Writer.h"
 
 
 class DriftModelSolver
@@ -27,6 +28,8 @@ private:
 	const double _dt; // Шаг по времени
 
 	MathModel::DriftModel _drift_model; // Класс математической модели
+	Writer _results_writer; // Объект для печати результатов
+
 	size_t _n_points_cell_properties; // Число точек для значений всех параметров кроме скоростей
 	size_t _n_points_cell_velocities; // Число точек для значений скоростей
 

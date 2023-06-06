@@ -48,6 +48,9 @@
     <ClCompile Include="Solver\DriftModelSolver.cpp">
       <Filter>Исходные файлы\Solver</Filter>
     </ClCompile>
+    <ClCompile Include="Writer.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MathModel\MathModel.h">
@@ -61,6 +64,9 @@
     </ClInclude>
     <ClInclude Include="Well\WellSegment.h">
       <Filter>Файлы заголовков\Well</Filter>
+    </ClInclude>
+    <ClInclude Include="Writer.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
