@@ -39,44 +39,7 @@ void DriftModelSolver::Solve()
 }
 
 
-#pragma region To Delete
-const std::valarray<double>& DriftModelSolver::GetV_m() const
-{
-	return _v_m;
-}
 
-const std::valarray<double>& DriftModelSolver::GetV_g() const
-{
-	return _v_g;
-}
-
-const std::valarray<double>& DriftModelSolver::GetV_l() const
-{
-	return _v_l;
-}
-
-const std::valarray<double>& DriftModelSolver::GetAlpha_g() const
-{
-	return _alpha_g;
-}
-
-
-
-const std::valarray<double>& DriftModelSolver::Get_P() const
-{
-	return _p;
-}
-
-const double& DriftModelSolver::GetDt() const
-{
-	return _dt;
-}
-
-const double& DriftModelSolver::GetDz() const
-{
-	return _dz;
-}
-#pragma endregion
 
 #pragma region Support
 

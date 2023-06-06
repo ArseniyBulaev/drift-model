@@ -13,13 +13,6 @@ class DriftModelSolver
 public:
 	DriftModelSolver(double dz, double dt, const Well& well, MathModel::TaskType task_type);
 	void Solve();
-	const std::valarray<double> & GetV_m() const;
-	const std::valarray<double> & GetV_g() const;
-	const std::valarray<double> & GetV_l() const;
-	const std::valarray<double> & GetAlpha_g() const;
-	const std::valarray<double> & Get_P() const;
-	const double & GetDt() const;
-	const double & GetDz() const;
 
 private:
 
