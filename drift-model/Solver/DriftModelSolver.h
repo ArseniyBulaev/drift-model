@@ -47,6 +47,8 @@ private:
 	std::valarray<double> CalculateMixtureVelocityCorrection(const std::valarray<double> & p_corr);
 	
 	std::valarray<double> CalculateGasVelocity(const std::valarray<double> & p, const std::valarray<double> & v_m);
+	std::valarray<double> CalculateLiquidVelocity(const std::valarray<double>& v_m, const std::valarray<double>& alpha_g, const std::valarray<double>& v_g);
+
 	
 	std::valarray<double> CalculateGasVolumeFraction(const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g);
 	std::valarray<double> CalculatePressureCorrection(const std::valarray<double> & v_m_intermediate);

@@ -2,6 +2,7 @@
 
 //DEBUG
 #include <iostream>
+#include <stdexcept>
 
 
 
@@ -156,16 +157,12 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 	}
 
 	// Нужно ли считать скорость в граничной ячейке ?
-	/*alpha_w[0] = 0;
-	alpha_e[0] = 0;
-	alpha_p[0] = 1;
-	b[0] = v_m_intermediate[0];*/
 
 
-	/*alpha_w[_n_points_cell_velocities - 1] = 0;
+	alpha_w[_n_points_cell_velocities - 1] = 0;
 	alpha_e[_n_points_cell_velocities - 1] = 0;
 	alpha_p[_n_points_cell_velocities - 1] = 1;
-	b[_n_points_cell_velocities - 1] = v_m_intermediate[_n_points_cell_velocities - 1];*/
+	b[_n_points_cell_velocities - 1] = _v_m[_n_points_cell_velocities - 1];
 
 
 	TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
@@ -251,6 +248,28 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray
 	v_g = C_0 * v_m + v_d;
 	return v_g;
 }
+
+std::valarray<double> DriftModelSolver::CalculateLiquidVelocity(const std::valarray<double>&v_m, const std::valarray<double>&alpha_g, const std::valarray<double>&v_g)
+{
+	std::valarray<double>v_l(_n_points_cell_velocities);
+
+	for (size_t i = 0; i < _n_points_cell_velocities; i++)
+	{
+		double alpha_g_mid = (alpha_g[i] + alpha_g[i + 1]) / 2;
+		double alpha_l_mid = 1 - alpha_g_mid;
+
+		if (alpha_l_mid == 0)
+		{
+			throw std::invalid_argument("alpha_l can't be zero");
+		}
+
+		v_l[i] = (v_m[i] - alpha_g_mid * v_g[i]) / alpha_l_mid;
+	}
+
+	return v_l;
+}
+
+
 
 std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::valarray<double>& v_m_intermediate)
 {
@@ -341,7 +360,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
 
-		/*b[i] = _dz / _dt * (rho_m_0_P - rho_m_P)
+		b[i] = _dz / _dt * (rho_m_0_P - rho_m_P)
 			- v_d_e * alpha_g_e * rho_g_e
 			- v_m_star_e * C_0_e * alpha_g_e * rho_g_e
 			+ v_d_w * alpha_g_w * rho_g_w
@@ -349,18 +368,18 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 			+ v_d_e * alpha_g_e * rho_l_e
 			- v_m_star_e * ((1 - alpha_g_e * C_0_e) * rho_l_e)
 			- v_d_w * alpha_g_w * rho_l_w
-			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);*/
+			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
 
 		// Случай постоянной плотности
-		alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
+		/*alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
 		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
-		b[i] = v_m_star_w - v_m_star_e;
+		b[i] = v_m_star_w - v_m_star_e;*/
 
 	}
 
 
-	alpha_e[0] = 0;
+	/*alpha_e[0] = 0;
 	alpha_w[0] = 0;
 	alpha_p[0] = 1;
 	b[0] = 0;
@@ -368,7 +387,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	alpha_e[_n_points_cell_properties - 1] = 0;
 	alpha_w[_n_points_cell_properties - 1] = 0;
 	alpha_p[_n_points_cell_properties - 1] = 1;
-	b[_n_points_cell_properties - 1] = 0;
+	b[_n_points_cell_properties - 1] = 0;*/
 	
 
 
@@ -483,7 +502,9 @@ void DriftModelSolver::SimpleAlgorithm()
 	std::valarray<double> v_m_intermediate = _v_m;
 	std::valarray<double> p_intermediate = _p;
 	std::valarray<double> v_g_intermediate = _v_g;
+	std::valarray<double> v_l_intermediate = _v_l;
 	std::valarray<double> alpha_g_intermediate = _alpha_g;
+	
 
 
 	do
@@ -497,7 +518,6 @@ void DriftModelSolver::SimpleAlgorithm()
 		{
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureSpeed(v_m_intermediate);
-
 
 			// Вычисление поправки к давлению
 			p_corr = CalculatePressureCorrection(v_m_intermediate);
@@ -514,6 +534,9 @@ void DriftModelSolver::SimpleAlgorithm()
 
 			// Вычисление объёмной доли газа
 			alpha_g_intermediate = CalculateGasVolumeFraction(p_intermediate, v_g_intermediate);
+
+			// Вычисление скорости жидкости
+			v_l_intermediate = CalculateLiquidVelocity(v_m_intermediate, alpha_g_intermediate, v_g_intermediate);
 
 			// Дисбаланс
 			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate);
