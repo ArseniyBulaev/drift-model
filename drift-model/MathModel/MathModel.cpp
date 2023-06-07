@@ -17,6 +17,9 @@ void MathModel::DriftModel::SetInitialConditions(
 	case MathModel::TaskType::BubblesRising:
 		SetBubblesRisingInitialConditions(alpha_g, p, v_m, v_g, v_l, dz);
 		break;
+	case MathModel::TaskType::Debug:
+		SetDebugInitialConditions(alpha_g, p, v_m, v_g, v_l, dz);
+		break;
 	}
 }
 
@@ -33,6 +36,9 @@ void MathModel::DriftModel::SetBoundaryConditions(
 	{
 	case MathModel::TaskType::BubblesRising:
 		SetBubblesRisingBoundaryConditions(alpha_g, p, v_m , v_g, v_l, well, dt);
+		break;
+	case MathModel::TaskType::Debug:
+		SetDebugBoundaryConditions(alpha_g, p, v_m, v_g, v_l, well, dt);
 		break;
 	}
 }
@@ -56,7 +62,6 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 		double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
 		const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
 		double r_b = r_b0; // Как первое приближение взята константа. Должна быть расчётная формула
-		
 		double mb_0 = 4 / 3 * pi * pow(r_b0, 3) * rho_g_0; // Масса пузырька
 		double mu_0 = GetLiquidViscosity(); // Вязкость чистой жидкости
 		double St = mb_0 * _U * pow(r_b, 3) / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
@@ -197,7 +202,7 @@ double MathModel::DriftModel::GetFrictionCoefficient(double alpha_g,double alpha
 
 	double f = v_m > 0 ? 9.09 * pow(rho_m * v_m * d / (eps * rho_m * v_m + 68 * mu_m), 0.25) : 1; // Формула Альтшуля (155 страница в "Руководство пользователя симулятур ГНКТ") 
 
-	return 1;
+	return 0;
 }
 
 void MathModel::DriftModel::SetBubblesRisingInitialConditions(
@@ -215,7 +220,7 @@ void MathModel::DriftModel::SetBubblesRisingInitialConditions(
 
 	for (size_t i = 0; i < p.size(); ++i)
 	{
-		p[i] = CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), i * dz);
+		p[i] = CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), (i + 1) * dz);
 	}
 	
 	for (size_t i = 0; i < v_m.size(); ++i)
@@ -259,6 +264,30 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	v_m[index_wb_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_wb_velocity], v_l[index_wb_velocity]);
 }
 
+void MathModel::DriftModel::SetDebugInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, std::valarray<double>& v_g, std::valarray<double>& v_l, double dz)
+{
+	for (size_t i = 0; i < alpha_g.size(); ++i)
+	{
+		alpha_g[i] = 0;
+	}
+
+	for (size_t i = 0; i < p.size(); ++i)
+	{
+		p[i] = CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), (i + 1) * dz);
+	}
+
+	for (size_t i = 0; i < v_m.size(); ++i)
+	{
+		v_l[i] = 0;
+		v_g[i] = 0;
+		v_m[i] = 0;
+	}
+}
+
+void MathModel::DriftModel::SetDebugBoundaryConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, std::valarray<double>& v_g, std::valarray<double>& v_l, const Well well, double dt)
+{
+}
+
 double MathModel::DriftModel::GetBubblesRisingLiquidFlow(double dt)
 {
 	double flow_value = 1.0 / 3600; // 1 м^3 / час
@@ -283,4 +312,14 @@ void MathModel::DriftModel::SetBubblesRisingCharacteristicGasVolumeFraction()
 	double gas_flow = GetBubblesRisingGasFlow(1);
 	double liquid_flow = GetBubblesRisingLiquidFlow(1);
 	_alpha_g_0 = gas_flow / (gas_flow + liquid_flow);
+}
+
+void MathModel::DriftModel::SetDebugCharacteristicVelocity(Well well)
+{
+	_U = 0.2;
+}
+
+void MathModel::DriftModel::SetDebugCharacteristicGasVolumeFraction()
+{
+	_alpha_g_0 = 0;
 }

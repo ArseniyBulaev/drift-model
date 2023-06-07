@@ -7,7 +7,7 @@
 namespace MathModel
 {
 	// Тип Решаемой задачи
-	enum class TaskType { BubblesRising };
+	enum class TaskType { BubblesRising, Debug };
 
 	class DriftModel
 	{
@@ -32,6 +32,9 @@ namespace MathModel
 				SetBubblesRisingCharacteristicVelocity(well);
 				SetBubblesRisingCharacteristicGasVolumeFraction();
 				break;
+			case MathModel::TaskType::Debug:
+				SetDebugCharacteristicVelocity(well);
+				SetDebugCharacteristicGasVolumeFraction();
 			}
 		};
 		#pragma endregion
@@ -105,10 +108,29 @@ namespace MathModel
 			const Well well,
 			double dt);
 
+		void SetDebugInitialConditions(
+			std::valarray<double>& alpha_g,
+			std::valarray<double>& p,
+			std::valarray<double>& v_m,
+			std::valarray<double>& v_g,
+			std::valarray<double>& v_l,
+			double dz);
+
+		void SetDebugBoundaryConditions(
+			std::valarray<double>& alpha_g,
+			std::valarray<double>& p,
+			std::valarray<double>& v_m,
+			std::valarray<double>& v_g,
+			std::valarray<double>& v_l,
+			const Well well,
+			double dt);
+
 		double GetBubblesRisingLiquidFlow(double dt);
 		double GetBubblesRisingGasFlow(double dt);
 		void SetBubblesRisingCharacteristicVelocity(Well well);
 		void SetBubblesRisingCharacteristicGasVolumeFraction();
+		void SetDebugCharacteristicVelocity(Well well);
+		void SetDebugCharacteristicGasVolumeFraction();
 		#pragma endregion
 		
 

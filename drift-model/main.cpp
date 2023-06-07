@@ -13,7 +13,7 @@ using namespace std;
 int main() {
 
 	double dz = 0.01;
-	double dt = 0.001;
+	double dt = 0.01;
 	Well well = Well({ WellSegment(1,0,0,0.1)});
 	MathModel::TaskType task_type = MathModel::TaskType::BubblesRising;
 	DriftModelSolver solver(dz, dt, well, task_type);

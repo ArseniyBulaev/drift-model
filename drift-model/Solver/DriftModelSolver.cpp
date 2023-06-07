@@ -142,8 +142,10 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 		alpha_p[i] = 1 + 0.5 * _dt / _dz * (std::max(v_m_star_e, 0.0) +
 			std::max(-v_m_star_w, 0.0)) +
 			_dt * 2 * f_star_P * abs(v_m_star_P) / d_P;
+
+
 		b[i] = v_m_zero_P
-			+ _dt * _drift_model.g * cos(theta_P)
+			+ (_dt * _drift_model.g * cos(theta_P))
 			- _dt / _dz * (2 / (rho_m_E_stroke + rho_m_P_stroke)) * (p_E_stroke - p_P_stroke)
 			+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 
@@ -154,10 +156,17 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 	}
 
 	// Нужно ли считать скорость в граничной ячейке ?
-	alpha_w[_n_points_cell_velocities - 1] = 0;
+	/*alpha_w[0] = 0;
+	alpha_e[0] = 0;
+	alpha_p[0] = 1;
+	b[0] = v_m_intermediate[0];*/
+
+
+	/*alpha_w[_n_points_cell_velocities - 1] = 0;
 	alpha_e[_n_points_cell_velocities - 1] = 0;
 	alpha_p[_n_points_cell_velocities - 1] = 1;
-	b[_n_points_cell_velocities - 1] = _v_m[_n_points_cell_velocities - 1];
+	b[_n_points_cell_velocities - 1] = v_m_intermediate[_n_points_cell_velocities - 1];*/
+
 
 	TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
 
@@ -332,7 +341,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
 
-		b[i] = _dz / _dt * (rho_m_0_P - rho_m_P)
+		/*b[i] = _dz / _dt * (rho_m_0_P - rho_m_P)
 			- v_d_e * alpha_g_e * rho_g_e
 			- v_m_star_e * C_0_e * alpha_g_e * rho_g_e
 			+ v_d_w * alpha_g_w * rho_g_w
@@ -340,7 +349,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 			+ v_d_e * alpha_g_e * rho_l_e
 			- v_m_star_e * ((1 - alpha_g_e * C_0_e) * rho_l_e)
 			- v_d_w * alpha_g_w * rho_l_w
-			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
+			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);*/
 
 		// Случай постоянной плотности
 		alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
@@ -350,13 +359,22 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 
 	}
 
-	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
 
-	// В граничной ячейке корректировка не требуется
+	alpha_e[0] = 0;
+	alpha_w[0] = 0;
+	alpha_p[0] = 1;
+	b[0] = 0;
+
 	alpha_e[_n_points_cell_properties - 1] = 0;
 	alpha_w[_n_points_cell_properties - 1] = 0;
 	alpha_p[_n_points_cell_properties - 1] = 1;
 	b[_n_points_cell_properties - 1] = 0;
+	
+
+
+	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
+
+	
 
 
 	return p_corr;
@@ -412,8 +430,8 @@ void DriftModelSolver::TDMA(std::valarray<double>& v, const std::valarray<double
 	std::valarray<double> p(0.0, n), q(0.0, n);
 
 	// Стартовые значения коэффициентов
-	p[0] = 0;
-	q[0] = 0;
+	p[0] = b[0] / a[0];
+	q[0] = d[0] / a[0];
 
 
 	// Вычисление коэффициентов по рекурентным формулам
@@ -479,6 +497,7 @@ void DriftModelSolver::SimpleAlgorithm()
 		{
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureSpeed(v_m_intermediate);
+
 
 			// Вычисление поправки к давлению
 			p_corr = CalculatePressureCorrection(v_m_intermediate);
