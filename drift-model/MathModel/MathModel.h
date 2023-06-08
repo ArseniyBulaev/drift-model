@@ -35,6 +35,7 @@ namespace MathModel
 			case MathModel::TaskType::Debug:
 				SetDebugCharacteristicVelocity(well);
 				SetDebugCharacteristicGasVolumeFraction();
+				break;
 			}
 		};
 		#pragma endregion
