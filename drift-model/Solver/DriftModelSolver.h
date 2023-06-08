@@ -26,6 +26,9 @@ private:
 	size_t _n_points_cell_properties; // Число точек для значений всех параметров кроме скоростей
 	size_t _n_points_cell_velocities; // Число точек для значений скоростей
 
+	double alpha_p_relax = 0.9; // Коэффициент релаксации для давления
+	double alpha_v_relax = 0.9; // Коэффициент релаксации для скорости
+
 	// Вектора с расчётными параметрами
 	std::valarray<double> _theta; // Угол наклона трубы
 	std::valarray<double> _d; // Диаметр трубы

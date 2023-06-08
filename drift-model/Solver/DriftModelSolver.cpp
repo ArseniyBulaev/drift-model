@@ -151,9 +151,8 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 			+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 
 		// Релаксация для скорости (Фиолетовая книжка. страница 145)
-		double alpha_u_relax = 0.6; // Коэффициент релаксации
-		alpha_p[i] /= alpha_u_relax;
-		b[i] += (1 - alpha_u_relax) * alpha_p[i] * v_m_intermediate[i];
+		alpha_p[i] /= alpha_v_relax;
+		b[i] += (1 - alpha_v_relax) * alpha_p[i] * _v_m[i];
 	}
 
 	// Нужно ли считать скорость в граничной ячейке ?
@@ -371,15 +370,15 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
 
 		// Случай постоянной плотности
-		/*alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
+		alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
 		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
-		b[i] = v_m_star_w - v_m_star_e;*/
+		b[i] = v_m_star_w - v_m_star_e;
 
 	}
 
 
-	/*alpha_e[0] = 0;
+	alpha_e[0] = 0;
 	alpha_w[0] = 0;
 	alpha_p[0] = 1;
 	b[0] = 0;
@@ -387,7 +386,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	alpha_e[_n_points_cell_properties - 1] = 0;
 	alpha_w[_n_points_cell_properties - 1] = 0;
 	alpha_p[_n_points_cell_properties - 1] = 1;
-	b[_n_points_cell_properties - 1] = 0;*/
+	b[_n_points_cell_properties - 1] = 0;
 	
 
 
@@ -489,10 +488,7 @@ void DriftModelSolver::SimpleAlgorithm()
 	// Точность
 	const double accuracy = 0.01;
 	bool imbalance_convergence_predicate;
-
-
-	// Патанкар (страница 106) 
-	double alpha_p_relax = 0.1;
+	
 
 	// Номер внутренней итерации
 	int internal_iteration_number = 0;
