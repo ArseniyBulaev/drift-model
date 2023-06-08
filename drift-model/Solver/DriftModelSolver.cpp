@@ -242,8 +242,8 @@ std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::va
 std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray<double>& p, const std::valarray<double>& v_m)
 {
 	std::valarray<double>v_g;
-	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, p, _n_points_cell_velocities, _dz);
-	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, p, _n_points_cell_velocities);
+	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, _alpha_g,  p, _n_points_cell_velocities, _dz);
+	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _alpha_g,  p, _n_points_cell_velocities);
 	v_g = C_0 * v_m + v_d;
 	return v_g;
 }
@@ -282,8 +282,8 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	std::valarray<double> b(0.0, _n_points_cell_properties);
 
 	// Параметр профиля и скорость дрейфа
-	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, _p, _n_points_cell_velocities, _dz);
-	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _p, _n_points_cell_velocities);
+	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, _alpha_g, _p, _n_points_cell_velocities, _dz);
+	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _alpha_g, _p, _n_points_cell_velocities);
 
 	// Заполнение коэффициентов 
 	for (int i = 0; i < _n_points_cell_properties; ++i)

@@ -30,11 +30,9 @@ namespace MathModel
 			{
 			case MathModel::TaskType::BubblesRising:
 				SetBubblesRisingCharacteristicVelocity(well);
-				SetBubblesRisingCharacteristicGasVolumeFraction();
 				break;
 			case MathModel::TaskType::Debug:
 				SetDebugCharacteristicVelocity(well);
-				SetDebugCharacteristicGasVolumeFraction();
 				break;
 			}
 		};
@@ -60,8 +58,8 @@ namespace MathModel
 
 	
 		// Скорость дрейфа и параметр профиля газа
-		std::valarray<double> CalculateC_0(const std::valarray<double> & d, const std::valarray<double>& p, size_t n_points_cell_velocities, double dz);
-		std::valarray<double> CalculateV_d(const std::valarray<double> & d, std::valarray<double> p, size_t n_points_cell_velocities);
+		std::valarray<double> CalculateC_0(const std::valarray<double> & d, const std::valarray<double> & alpha_g,  const std::valarray<double>& p, size_t n_points_cell_velocities, double dz);
+		std::valarray<double> CalculateV_d(const std::valarray<double> & d, const std::valarray<double> & alpha_g, std::valarray<double> p, size_t n_points_cell_velocities);
 
 
 		// Тестовая скорость дрейфа и параметр профиля газа
@@ -129,7 +127,6 @@ namespace MathModel
 		double GetBubblesRisingLiquidFlow(double dt);
 		double GetBubblesRisingGasFlow(double dt);
 		void SetBubblesRisingCharacteristicVelocity(Well well);
-		void SetBubblesRisingCharacteristicGasVolumeFraction();
 		void SetDebugCharacteristicVelocity(Well well);
 		void SetDebugCharacteristicGasVolumeFraction();
 		#pragma endregion

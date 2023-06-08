@@ -43,7 +43,7 @@ void MathModel::DriftModel::SetBoundaryConditions(
 	}
 }
 
-std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<double>& d, const std::valarray<double> & p, size_t n_points_cell_velocities, double dz)
+std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<double>& d, const std::valarray<double>& alpha_g, const std::valarray<double>& p, size_t n_points_cell_velocities, double dz)
 {
 	std::valarray<double>C_0(n_points_cell_velocities);
 
@@ -54,10 +54,11 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 	for (size_t i = 0; i < n_points_cell_velocities; ++i)
 	{
 		double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
+		_alpha_g_0 = (alpha_g[i] + alpha_g[i + 1]) / 2;
 
 		// Промежуточные переменные
 		const double pi = 3.14;
-		double r_0 = 0.1 * R; // Заполнение трубы пузырьками
+		double r_0 = 1 * R; // Заполнение трубы пузырьками
 		double x_0 = r_0 / R; // Доля радиуса трубы, по которой течёт газ
 		double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
 		const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
@@ -85,15 +86,16 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 		C_0[i] = (2 * a * (1 - pow(x_0, 2)) + m_0 * (a - b) * pow(x_0, 2) - 2 * gamma * rho_l * m_0 * _alpha_g_0) / (a * (1 - pow(x_0, 4)) + m_0 * (a - b) * pow(x_0, 4) - 2 * gamma * rho_l * m_0 * _alpha_g_0 * pow(x_0, 2));
 	}
 
-	return C_0 * _U;
+	return C_0;
 }
 
-std::valarray<double> MathModel::DriftModel::CalculateV_d(const std::valarray<double>& d, std::valarray<double> p, size_t n_points_cell_velocities)
+std::valarray<double> MathModel::DriftModel::CalculateV_d(const std::valarray<double>& d, const std::valarray<double>& alpha_g, std::valarray<double> p, size_t n_points_cell_velocities)
 {
 	std::valarray<double>v_d(n_points_cell_velocities);
 
 	for (size_t i = 0; i < n_points_cell_velocities; ++i)
 	{
+		_alpha_g_0 = (alpha_g[i] + alpha_g[i + 1]) / 2;
 		const double pi = 3.14;
 		double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
 		double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
@@ -296,7 +298,7 @@ double MathModel::DriftModel::GetBubblesRisingLiquidFlow(double dt)
 
 double MathModel::DriftModel::GetBubblesRisingGasFlow(double dt)
 {
-	double flow_value = GetBubblesRisingLiquidFlow(dt) / 20;
+	double flow_value = GetBubblesRisingLiquidFlow(dt) / 5;
 	return flow_value;
 }
 
@@ -307,12 +309,6 @@ void MathModel::DriftModel::SetBubblesRisingCharacteristicVelocity(Well well)
 	_U =  std::max(gas_velocity, liquid_velocity);
 }
 
-void MathModel::DriftModel::SetBubblesRisingCharacteristicGasVolumeFraction()
-{
-	double gas_flow = GetBubblesRisingGasFlow(1);
-	double liquid_flow = GetBubblesRisingLiquidFlow(1);
-	_alpha_g_0 = gas_flow / (gas_flow + liquid_flow);
-}
 
 void MathModel::DriftModel::SetDebugCharacteristicVelocity(Well well)
 {
