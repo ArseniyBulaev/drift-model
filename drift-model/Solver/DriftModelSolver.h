@@ -18,7 +18,7 @@ private:
 
 	const Well _well; // Скважина
 	const double _dz; // Шаг по пространству
-	const double _dt; // Шаг по времени
+	double _dt; // Шаг по времени
 
 	MathModel::DriftModel _drift_model; // Класс математической модели
 	Writer _results_writer; // Объект для печати результатов
@@ -40,6 +40,8 @@ private:
 	std::valarray<double> _alpha_g; // Объёмная доля газа
 	std::valarray<double> _p; // Давление дисперсной среды
 
+
+	void CorrectTimeStep(const std::valarray<double>& v_m_intermediate);
 
 	void InitializeGeometryParameters(); // Инициализация параметров скважины
 	

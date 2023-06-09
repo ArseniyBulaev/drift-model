@@ -70,7 +70,7 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 		double Re = rho_l_0 * _U * R / mu_0;
 		double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
 		double rho_l = GetLiquidDensity(p[i]) / rho_l_0; //Безразмерная Текущая плотность жидкости
-		double rho_g = GetGasDensity(p[i]) / rho_g_0; // Безразмерная Текущая плотность газа
+		double rho_g = GetGasDensity(p[i], dz * i) / rho_g_0; // Безразмерная Текущая плотность газа
 		double eps = R / _L; // Малый параметр (Приближение длинного канала)
 
 		double dp_dz = eps * Re * (p[i + 1] - p[i]) / dz_dimensionless; // Безразмерный градиент давления
@@ -149,9 +149,9 @@ double MathModel::DriftModel::CalculateDriftVelocity_TEST(double alpha_g)
 	return v_d;
 }
 
-double MathModel::DriftModel::GetMixtureDensity(double alpha_g, double alpha_l, double p)
+double MathModel::DriftModel::GetMixtureDensity(double alpha_g, double alpha_l, double p, double z)
 {
-	return alpha_g * GetGasDensity(p) + alpha_l * GetLiquidDensity(p);
+	return alpha_g * GetGasDensity(p, z) + alpha_l * GetLiquidDensity(p);
 }
 
 double MathModel::DriftModel::GetMixtureVelocity(double alpha_g, double alpha_l, double v_g, double v_l)
@@ -164,9 +164,14 @@ double MathModel::DriftModel::GetMixtureViscosity(double alpha_g)
 	return 1 / (1 - alpha_g);
 }
 
-double MathModel::DriftModel::GetGasDensity(double p)
+double MathModel::DriftModel::GetGasDensity(double p, double z)
 {
-	return  GetCharacteristicGasDensity(); // Как первое приближение возвращается константа
+	
+	// return  GetCharacteristicGasDensity(); // Как первое приближение возвращается константа
+	double M = 28.97; // Молярная масса воздуха
+	double R = 8.314; // Газовая постоянная
+	double T = 293;   // Температура в Кельвинах
+	return z != 0 ? GetLiquidDensity(p) * g * z * M / (R * T) : GetCharacteristicGasDensity();
 }
 
 double MathModel::DriftModel::GetLiquidDensity(double p)
@@ -198,7 +203,7 @@ double MathModel::DriftModel::GetLiquidViscosity()
 
 double MathModel::DriftModel::GetFrictionCoefficient(double alpha_g,double alpha_l, double v_m, double p, double d, double eps)
 {
-	double rho_m = GetMixtureDensity(alpha_g, alpha_l, p);
+	double rho_m = GetMixtureDensity(alpha_g, alpha_l, p, 0); // Не указал кооридинату нормально
 	double mu_m = GetMixtureViscosity(alpha_g);
 
 

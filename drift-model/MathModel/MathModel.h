@@ -69,9 +69,9 @@ namespace MathModel
 		double GetMixtureVelocity(double alpha_g, double alpha_l, double v_g, double v_l);
 		// Скорость воды
 		// Плотность
-		double GetGasDensity(double p);
+		double GetGasDensity(double p, double z);
 		double GetLiquidDensity(double p);
-		double GetMixtureDensity(double alpha_g, double alpha_l, double p);
+		double GetMixtureDensity(double alpha_g, double alpha_l, double p, double z);
 		// Вязкость
 		double GetLiquidViscosity();
 		double GetMixtureViscosity(double alpha_g);
