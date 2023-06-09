@@ -85,7 +85,7 @@ int DriftModelSolver::CalculateNumberOfPoints()
 #pragma endregion
 
 #pragma region Calculation
-void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v_m_intermediate)
+void DriftModelSolver::CalculateApproximateMixtureVelocity(std::valarray<double>& v_m_intermediate)
 {
 
 
@@ -108,16 +108,16 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 		double alpha_g_P_stroke = _alpha_g[i];
 		double alpha_l_P_stroke = 1 - alpha_g_P_stroke;
 		double rho_m_P_stroke = _drift_model.GetMixtureDensity(alpha_g_P_stroke, alpha_l_P_stroke, p_P_stroke);
-		// Значения в точке W' (давление и остальные параметры)
-		double p_W_stroke = _p[i + 1];
-		double alpha_g_W_stroke = _alpha_g[i + 1];
-		double alpha_l_W_stroke = 1 - alpha_g_W_stroke;
-		double rho_m_W_stroke = _drift_model.GetMixtureDensity(alpha_g_W_stroke, alpha_l_W_stroke, p_W_stroke);
 		// Значения в точке E' (давление и остальные параметры)
-		double p_E_stroke = i > 0 ? _p[i - 1] : 0;
-		double alpha_g_E_stroke = i > 0 ? _alpha_g[i - 1] : 0;
+		double p_E_stroke = _p[i + 1];
+		double alpha_g_E_stroke = _alpha_g[i + 1];
 		double alpha_l_E_stroke = 1 - alpha_g_E_stroke;
 		double rho_m_E_stroke = _drift_model.GetMixtureDensity(alpha_g_E_stroke, alpha_l_E_stroke, p_E_stroke);
+		// Значения в точке W' (давление и остальные параметры)
+		double p_W_stroke = i > 0 ? _p[i - 1] : 0;
+		double alpha_g_W_stroke = i > 0 ? _alpha_g[i - 1] : 0;
+		double alpha_l_W_stroke = 1 - alpha_g_W_stroke;
+		double rho_m_W_stroke = _drift_model.GetMixtureDensity(alpha_g_W_stroke, alpha_l_W_stroke, p_W_stroke);
 		// Значения в точке P
 		double v_m_star_P = v_m_star[i];
 		double v_m_zero_P = _v_m[i];
@@ -130,9 +130,9 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 		double theta_P = _theta[i];
 		double f_star_P = _drift_model.GetFrictionCoefficient(alpha_g_P, alpha_l_P, v_m_star_P, p_P, d_P, eps_P);
 		// Значения в точке W
-		double v_m_star_W = i > 0 ? v_m_star[i - 1] : 0;
+		double v_m_star_W = i > 0 ? v_m_star[i - 1] : v_m_star[i];
 		// Значения в точке E
-		double v_m_star_E = i < _n_points_cell_velocities - 1 ? v_m_star[i + 1] : 0;
+		double v_m_star_E = i < _n_points_cell_velocities - 1 ? v_m_star[i + 1] : v_m_star[i];
 		// Значения на правой грани (e) конечного объёма для точки P
 		double v_m_star_e = (v_m_star_P + v_m_star_E) / 2;
 		// Значения на левой грани (w) конечного объёма для точки P
@@ -151,8 +151,8 @@ void DriftModelSolver::CalculateApproximateMixtureSpeed(std::valarray<double>& v
 			+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 
 		// Релаксация для скорости (Фиолетовая книжка. страница 145)
-		alpha_p[i] /= alpha_v_relax;
-		b[i] += (1 - alpha_v_relax) * alpha_p[i] * _v_m[i];
+		// alpha_p[i] /= alpha_v_relax;
+		// b[i] += (1 - alpha_v_relax) * alpha_p[i] * _v_m[i];
 	}
 
 	// Нужно ли считать скорость в граничной ячейке ?
@@ -370,10 +370,11 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
 
 		// Случай постоянной плотности
-		alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
+		/*alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
 		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
-		b[i] = v_m_star_w - v_m_star_e;
+		b[i] = v_m_star_w - v_m_star_e;*/
+
 
 	}
 
@@ -382,6 +383,11 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	alpha_w[0] = 0;
 	alpha_p[0] = 1;
 	b[0] = 0;
+
+	alpha_e[_n_points_cell_properties - 2] = 0;
+	alpha_w[_n_points_cell_properties - 2] = 0;
+	alpha_p[_n_points_cell_properties - 2] = 1;
+	b[_n_points_cell_properties - 2] = 0;
 
 	alpha_e[_n_points_cell_properties - 1] = 0;
 	alpha_w[_n_points_cell_properties - 1] = 0;
@@ -476,19 +482,19 @@ void DriftModelSolver::TDMA(std::valarray<double>& v, const std::valarray<double
 
 void DriftModelSolver::SimpleAlgorithm()
 {
-
 	// Поправки
 	std::valarray<double> p_corr;
 	std::valarray<double> v_m_corr;
-
 
 	// Значения нормы разности векторов решений на текущем и предыдущем временных шагах
 	double l2_norm_of_difference_of_alpha_g = 0.0;
 
 	// Точность
 	const double accuracy = 0.01;
+
+	// Проверка сходимости
 	bool imbalance_convergence_predicate;
-	
+	bool norm_convergence_predicate;
 
 	// Номер внутренней итерации
 	int internal_iteration_number = 0;
@@ -501,25 +507,29 @@ void DriftModelSolver::SimpleAlgorithm()
 	std::valarray<double> v_l_intermediate = _v_l;
 	std::valarray<double> alpha_g_intermediate = _alpha_g;
 	
-
+	// Значения с предыдущей итерации для оценки сходимости
+	std::valarray<double> v_m_previous_iteration = _v_m;
+	std::valarray<double> p_previous_iteration = _p;
+	std::valarray<double> v_g_previous_iteration = _v_g;
+	std::valarray<double> v_l_previous_iteration = _v_l;
+	std::valarray<double> alpha_g_previous_iteration = _alpha_g;
 
 	do
 	{
 		// Граничные условия
 		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
 
-		
-
 		do
 		{
 			// Вычисление приближённого значения скорости смеси
-			CalculateApproximateMixtureSpeed(v_m_intermediate);
+			CalculateApproximateMixtureVelocity(v_m_intermediate);
+
 
 			// Вычисление поправки к давлению
 			p_corr = CalculatePressureCorrection(v_m_intermediate);
 
 			// Исправление давления
-			p_intermediate = p_intermediate + alpha_p_relax * p_corr;
+			p_intermediate = _p + alpha_p_relax * p_corr;
 
 			// Исправление скорости
 			v_m_corr = CalculateMixtureVelocityCorrection(p_corr);
@@ -537,18 +547,31 @@ void DriftModelSolver::SimpleAlgorithm()
 			// Дисбаланс
 			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate);
 
+			// Вычисление нормы разности решений
+			double l2_norm_of_difference_v_m = sqrt((v_m_intermediate - v_m_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			double l2_norm_of_difference_p = sqrt((p_intermediate - p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			double l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+
 			// INFO
-			
 			std::cout << "iteration : " << internal_iteration_number << std::endl;
 			std::cout << "imbalance value : " << imbalance_value << std::endl;
+			std::cout << "v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
+			std::cout << "p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
+			std::cout << "alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
 
-			// Контроль сходимости
+			// Контроль сходимости по дисбалансу
 			imbalance_convergence_predicate = abs(imbalance_value) > accuracy;
+			norm_convergence_predicate = (l2_norm_of_difference_v_m > accuracy) || (l2_norm_of_difference_p > accuracy) || (l2_norm_of_difference_alpha_g > accuracy);
 
 			// Выполнение внутренней итерации
 			++internal_iteration_number;
 
-		} while (imbalance_convergence_predicate);
+			// Сохранение значений с предыдущей итерации
+			v_m_previous_iteration = v_m_intermediate;
+			p_previous_iteration = p_intermediate;
+			alpha_g_previous_iteration = alpha_g_intermediate;
+
+		} while (norm_convergence_predicate);
 		
 		internal_iteration_number = 0;
 		// Выполнение внешней итерации (итерацци по времени)
@@ -563,13 +586,13 @@ void DriftModelSolver::SimpleAlgorithm()
 		_v_g = v_g_intermediate;
 		_alpha_g = alpha_g_intermediate;
 		
-		
 
 		// INFO
 		std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_of_alpha_g << std::endl;
 		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
 
-	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 1);
+
+	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 0.1);
 
 	_results_writer.WriteToFile(_p, _dz, "p.txt");
 	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");

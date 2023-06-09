@@ -27,7 +27,7 @@ private:
 	size_t _n_points_cell_velocities; // Число точек для значений скоростей
 
 	double alpha_p_relax = 0.9; // Коэффициент релаксации для давления
-	double alpha_v_relax = 0.9; // Коэффициент релаксации для скорости
+	double alpha_v_relax = 0.3; // Коэффициент релаксации для скорости
 
 	// Вектора с расчётными параметрами
 	std::valarray<double> _theta; // Угол наклона трубы
@@ -45,7 +45,7 @@ private:
 	
 	int CalculateNumberOfPoints();
 	
-	void CalculateApproximateMixtureSpeed(std::valarray<double> & v_m_intermediate);
+	void CalculateApproximateMixtureVelocity(std::valarray<double> & v_m_intermediate);
 	
 	std::valarray<double> CalculateMixtureVelocityCorrection(const std::valarray<double> & p_corr);
 	

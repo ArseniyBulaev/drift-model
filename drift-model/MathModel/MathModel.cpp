@@ -288,6 +288,24 @@ void MathModel::DriftModel::SetDebugInitialConditions(std::valarray<double>& alp
 
 void MathModel::DriftModel::SetDebugBoundaryConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, std::valarray<double>& v_g, std::valarray<double>& v_l, const Well well, double dt)
 {
+	
+	size_t index_velocity = 0;
+	size_t index_property = 1;
+
+	// ”словие на объЄмную долю
+	alpha_g[index_property] = 0.05;
+
+	// ”словие на скорость
+	v_g[index_velocity] = 0.2;
+	v_l[index_velocity] = 0;
+
+	// ѕересчЄт значений на €чейку дл€ скорости
+	double alpha_g_mid = (alpha_g[index_property] + alpha_g[index_property - 1]) / 2;
+	double alpha_l_mid = 1 - alpha_g_mid;
+
+
+	v_m[index_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_velocity], v_l[index_velocity]);
+
 }
 
 double MathModel::DriftModel::GetBubblesRisingLiquidFlow(double dt)
@@ -312,7 +330,7 @@ void MathModel::DriftModel::SetBubblesRisingCharacteristicVelocity(Well well)
 
 void MathModel::DriftModel::SetDebugCharacteristicVelocity(Well well)
 {
-	_U = 0.2;
+	_U =  0.2;
 }
 
 void MathModel::DriftModel::SetDebugCharacteristicGasVolumeFraction()
