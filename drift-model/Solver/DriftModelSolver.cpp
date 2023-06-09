@@ -524,6 +524,10 @@ void DriftModelSolver::SimpleAlgorithm()
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureVelocity(v_m_intermediate);
 
+			// Вычисление числа Куранта
+			auto U = v_m_intermediate.max();
+			double C = abs(U) * _dt / _dz;
+			std::cout << "Courant number value : " << C << std::endl;
 
 			// Вычисление поправки к давлению
 			p_corr = CalculatePressureCorrection(v_m_intermediate);
