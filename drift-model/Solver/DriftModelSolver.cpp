@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 
-
 DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well, MathModel::TaskType task_type): _dz(dz), _dt(dt), _well(well), _drift_model(task_type, well)
 {
 	// Вычисление числа точек для значений параметров
@@ -39,8 +38,127 @@ void DriftModelSolver::Solve()
 	SimpleAlgorithm();
 }
 
+void DriftModelSolver::SimpleAlgorithm()
+{
+	// Поправки
+	std::valarray<double> p_corr;
+	std::valarray<double> v_m_corr;
+
+	// Значения нормы разности векторов решений на текущем и предыдущем временных шагах
+	double l2_norm_of_difference_of_alpha_g = 0.0;
+
+	// Точность
+	const double accuracy = 0.01;
+
+	// Проверка сходимости
+	bool imbalance_convergence_predicate;
+	bool norm_convergence_predicate;
+
+	// Номер внутренней итерации
+	int internal_iteration_number = 0;
+	int external_iteration_number = 0;
+
+	// Промежуточные вычисления
+	std::valarray<double> v_m_intermediate = _v_m;
+	std::valarray<double> p_intermediate = _p;
+	std::valarray<double> v_g_intermediate = _v_g;
+	std::valarray<double> v_l_intermediate = _v_l;
+	std::valarray<double> alpha_g_intermediate = _alpha_g;
+
+	// Значения с предыдущей итерации для оценки сходимости
+	std::valarray<double> v_m_previous_iteration = _v_m;
+	std::valarray<double> p_previous_iteration = _p;
+	std::valarray<double> v_g_previous_iteration = _v_g;
+	std::valarray<double> v_l_previous_iteration = _v_l;
+	std::valarray<double> alpha_g_previous_iteration = _alpha_g;
+
+	do
+	{
+		// Граничные условия
+		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
+
+		do
+		{
+			CorrectTimeStep(v_m_intermediate);
+
+			// Вычисление приближённого значения скорости смеси
+			CalculateApproximateMixtureVelocity(v_m_intermediate);
 
 
+			// Вычисление поправки к давлению
+			p_corr = CalculatePressureCorrection(v_m_intermediate);
+
+			// Исправление давления
+			p_intermediate = _p + alpha_p_relax * p_corr;
+
+			// Исправление скорости
+			v_m_corr = CalculateMixtureVelocityCorrection(p_corr);
+			v_m_intermediate = v_m_intermediate + v_m_corr;
+
+			// Вычисление скорости газа
+			v_g_intermediate = CalculateGasVelocity(p_intermediate, v_m_intermediate);
+
+			// Вычисление объёмной доли газа
+			alpha_g_intermediate = CalculateGasVolumeFraction(p_intermediate, v_g_intermediate);
+
+			// Вычисление скорости жидкости
+			v_l_intermediate = CalculateLiquidVelocity(v_m_intermediate, alpha_g_intermediate, v_g_intermediate);
+
+			// Дисбаланс
+			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate);
+
+			// Вычисление нормы разности решений
+			double l2_norm_of_difference_v_m = sqrt((v_m_intermediate - v_m_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			double l2_norm_of_difference_p = sqrt((p_intermediate - p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			double l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+
+			// INFO
+			std::cout << "iteration : " << internal_iteration_number << std::endl;
+			std::cout << "imbalance value : " << imbalance_value << std::endl;
+			std::cout << "v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
+			std::cout << "p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
+			std::cout << "alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
+
+			// Контроль сходимости по дисбалансу
+			imbalance_convergence_predicate = abs(imbalance_value) > accuracy;
+			norm_convergence_predicate = (l2_norm_of_difference_v_m > accuracy) || (l2_norm_of_difference_p > accuracy) || (l2_norm_of_difference_alpha_g > accuracy);
+
+			// Выполнение внутренней итерации
+			++internal_iteration_number;
+
+			// Сохранение значений с предыдущей итерации
+			v_m_previous_iteration = v_m_intermediate;
+			p_previous_iteration = p_intermediate;
+			alpha_g_previous_iteration = alpha_g_intermediate;
+
+		} while (norm_convergence_predicate);
+
+		internal_iteration_number = 0;
+		// Выполнение внешней итерации (итерацци по времени)
+		++external_iteration_number;
+
+		// Вычисление нормы для проверки на сходимость
+		l2_norm_of_difference_of_alpha_g = sqrt((_alpha_g - alpha_g_intermediate).apply([](double value)->double {return value * value; }).sum());
+
+
+		_v_m = v_m_intermediate;
+		_p = p_intermediate;
+		_v_g = v_g_intermediate;
+		_alpha_g = alpha_g_intermediate;
+
+
+		// INFO
+		std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_of_alpha_g << std::endl;
+		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
+
+
+	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 0.1);
+
+	_results_writer.WriteToFile(_p, _dz, "p.txt");
+	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");
+	// system("python Results\\plot.py p.txt");
+	// system("pause");
+}
 
 #pragma region Support
 
@@ -107,12 +225,14 @@ int DriftModelSolver::CalculateNumberOfPoints()
 #pragma endregion
 
 #pragma region Calculation
+
+#pragma region Numeric method
 void DriftModelSolver::CalculateApproximateMixtureVelocity(std::valarray<double>& v_m_intermediate)
 {
 
 
 	// Значения скорости смеси на предыдущей итерациии (Нужно для решения нелинейного уравнения)
-	const std::valarray<double> & v_m_star = v_m_intermediate;
+	const std::valarray<double>& v_m_star = v_m_intermediate;
 
 	// Коэффициенты в матрице
 	std::valarray<double> alpha_p(0.0, _n_points_cell_velocities);
@@ -173,26 +293,17 @@ void DriftModelSolver::CalculateApproximateMixtureVelocity(std::valarray<double>
 			+ _dt / _dz * (2 / (rho_m_P_stroke + rho_m_W_stroke)) * (p_P_stroke - p_W_stroke);
 
 		// Релаксация для скорости (Фиолетовая книжка. страница 145)
-		// alpha_p[i] /= alpha_v_relax;
-		// b[i] += (1 - alpha_v_relax) * alpha_p[i] * _v_m[i];
+		alpha_p[i] /= alpha_v_relax;
+		b[i] += (1 - alpha_v_relax) * alpha_p[i] * _v_m[i];
 	}
 
-	// Нужно ли считать скорость в граничной ячейке ?
-	alpha_w[0] = 0;
-	alpha_e[0] = 0;
-	alpha_p[0] = 1;
-	b[0] = _v_m[0];
 
-	/*alpha_w[_n_points_cell_velocities - 1] = 0;
-	alpha_e[_n_points_cell_velocities - 1] = 0;
-	alpha_p[_n_points_cell_velocities - 1] = 1;
-	b[_n_points_cell_velocities - 1] = _v_m[_n_points_cell_velocities - 1];*/
+
 
 
 	TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
 
 }
-
 std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const std::valarray<double>& p_corr)
 {
 	std::valarray<double> v_corr(0.0, _n_points_cell_velocities);
@@ -216,13 +327,9 @@ std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const
 		v_corr[i] = -2 * (_dt / (rho_m_P + rho_m_E)) * ((p_E - p_P) / _dz);
 	}
 
-	// В граничной ячейке корректировка не требуется ?
-	v_corr[0] = 0;
-	// v_corr[_n_points_cell_velocities - 1] = 0;
 
 	return v_corr;
 }
-
 std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g)
 {
 	std::valarray<double>alpha_gas(0.0, _n_points_cell_properties);
@@ -264,38 +371,6 @@ std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::va
 
 	return alpha_gas;
 }
-
-std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray<double>& p, const std::valarray<double>& v_m)
-{
-	std::valarray<double>v_g;
-	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, _alpha_g,  p, _n_points_cell_velocities, _dz);
-	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _alpha_g,  p, _n_points_cell_velocities);
-	v_g = C_0 * v_m + v_d;
-	return v_g;
-}
-
-std::valarray<double> DriftModelSolver::CalculateLiquidVelocity(const std::valarray<double>&v_m, const std::valarray<double>&alpha_g, const std::valarray<double>&v_g)
-{
-	std::valarray<double>v_l(_n_points_cell_velocities);
-
-	for (size_t i = 0; i < _n_points_cell_velocities; i++)
-	{
-		double alpha_g_mid = (alpha_g[i] + alpha_g[i + 1]) / 2;
-		double alpha_l_mid = 1 - alpha_g_mid;
-
-		if (alpha_l_mid == 0)
-		{
-			throw std::invalid_argument("alpha_l can't be zero");
-		}
-
-		v_l[i] = (v_m[i] - alpha_g_mid * v_g[i]) / alpha_l_mid;
-	}
-
-	return v_l;
-}
-
-
-
 std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::valarray<double>& v_m_intermediate)
 {
 	// Поправка на давление
@@ -405,32 +480,48 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	}
 
 
-	alpha_e[0] = 0;
-	alpha_w[0] = 0;
-	alpha_p[0] = 1;
-	b[0] = 0;
-
-	/*alpha_e[_n_points_cell_properties - 2] = 0;
-	alpha_w[_n_points_cell_properties - 2] = 0;
-	alpha_p[_n_points_cell_properties - 2] = 1;
-	b[_n_points_cell_properties - 2] = 0;
-
-	alpha_e[_n_points_cell_properties - 1] = 0;
-	alpha_w[_n_points_cell_properties - 1] = 0;
-	alpha_p[_n_points_cell_properties - 1] = 1;
-	b[_n_points_cell_properties - 1] = 0;*/
-	
-
-
 	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
-
-	
-
 
 	return p_corr;
 }
+#pragma endregion
 
-std::valarray<double> DriftModelSolver::CalculateGasVelocity_TEST(const std::valarray<double>& v_m)
+#pragma region Explicit
+
+std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray<double>& p, const std::valarray<double>& v_m)
+{
+	std::valarray<double>v_g;
+	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, _alpha_g,  p, _n_points_cell_velocities, _dz);
+	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, _alpha_g,  p, _n_points_cell_velocities);
+	v_g = C_0 * v_m + v_d;
+	return v_g;
+}
+
+std::valarray<double> DriftModelSolver::CalculateLiquidVelocity(const std::valarray<double>&v_m, const std::valarray<double>&alpha_g, const std::valarray<double>&v_g)
+{
+	std::valarray<double>v_l(_n_points_cell_velocities);
+
+	for (size_t i = 0; i < _n_points_cell_velocities; i++)
+	{
+		double alpha_g_mid = (alpha_g[i] + alpha_g[i + 1]) / 2;
+		double alpha_l_mid = 1 - alpha_g_mid;
+
+		if (alpha_l_mid == 0)
+		{
+			throw std::invalid_argument("alpha_l can't be zero");
+		}
+
+		v_l[i] = (v_m[i] - alpha_g_mid * v_g[i]) / alpha_l_mid;
+	}
+
+	return v_l;
+}
+
+
+#pragma endregion
+
+#pragma region Support
+std::valarray<double> DriftModelSolver::CalculateGasVelocityGeneral(const std::valarray<double>& v_m)
 {
 	std::valarray<double>v_g(0.0, _n_points_cell_velocities);
 	double v_d, C_0;
@@ -445,7 +536,6 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocity_TEST(const std::val
 
 	return v_g;
 }
-
 double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate)
 {
 	double imbalance_value = 0;
@@ -454,7 +544,7 @@ double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alph
 		// Точка P
 		double rho_g_P = _drift_model.GetGasDensity(p_intermediate[i], _dz * i);
 		double alpha_g_P = alpha_g_intermediate[i];
-		double v_g_P = (v_g_intermediate[i - 1] + (i < _n_points_cell_properties - 1 ?  v_g_intermediate[i] : 0)) / 2;
+		double v_g_P = (v_g_intermediate[i - 1] + (i < _n_points_cell_properties - 1 ? v_g_intermediate[i] : 0)) / 2;
 		double rho_g_o_P = _drift_model.GetGasDensity(_p[i], _dz * i);
 		double alpha_g_o_P = _alpha_g[i];
 
@@ -469,7 +559,6 @@ double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alph
 
 	return imbalance_value;
 }
-
 // Метод матричной прогонки
 void DriftModelSolver::TDMA(std::valarray<double>& v, const std::valarray<double>& a, const std::valarray<double>& b, const std::valarray<double>& c, const std::valarray<double>& d)
 {
@@ -504,129 +593,4 @@ void DriftModelSolver::TDMA(std::valarray<double>& v, const std::valarray<double
 
 #pragma endregion
 
-
-
-void DriftModelSolver::SimpleAlgorithm()
-{
-	// Поправки
-	std::valarray<double> p_corr;
-	std::valarray<double> v_m_corr;
-
-	// Значения нормы разности векторов решений на текущем и предыдущем временных шагах
-	double l2_norm_of_difference_of_alpha_g = 0.0;
-
-	// Точность
-	const double accuracy = 0.01;
-
-	// Проверка сходимости
-	bool imbalance_convergence_predicate;
-	bool norm_convergence_predicate;
-
-	// Номер внутренней итерации
-	int internal_iteration_number = 0;
-	int external_iteration_number = 0;
-
-	// Промежуточные вычисления
-	std::valarray<double> v_m_intermediate = _v_m;
-	std::valarray<double> p_intermediate = _p;
-	std::valarray<double> v_g_intermediate = _v_g;
-	std::valarray<double> v_l_intermediate = _v_l;
-	std::valarray<double> alpha_g_intermediate = _alpha_g;
-	
-	// Значения с предыдущей итерации для оценки сходимости
-	std::valarray<double> v_m_previous_iteration = _v_m;
-	std::valarray<double> p_previous_iteration = _p;
-	std::valarray<double> v_g_previous_iteration = _v_g;
-	std::valarray<double> v_l_previous_iteration = _v_l;
-	std::valarray<double> alpha_g_previous_iteration = _alpha_g;
-
-	do
-	{
-		// Граничные условия
-		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
-
-		do
-		{
-			CorrectTimeStep(v_m_intermediate);
-
-			// Вычисление приближённого значения скорости смеси
-			CalculateApproximateMixtureVelocity(v_m_intermediate);
-
-
-			// Вычисление поправки к давлению
-			p_corr = CalculatePressureCorrection(v_m_intermediate);
-
-			// Исправление давления
-			p_intermediate = _p + alpha_p_relax * p_corr;
-
-			// Исправление скорости
-			v_m_corr = CalculateMixtureVelocityCorrection(p_corr);
-			v_m_intermediate = v_m_intermediate + v_m_corr;
-
-			// Вычисление скорости газа
-			v_g_intermediate = CalculateGasVelocity(p_intermediate, v_m_intermediate);
-
-			// Вычисление объёмной доли газа
-			alpha_g_intermediate = CalculateGasVolumeFraction(p_intermediate, v_g_intermediate);
-
-			// Вычисление скорости жидкости
-			v_l_intermediate = CalculateLiquidVelocity(v_m_intermediate, alpha_g_intermediate, v_g_intermediate);
-
-			// Дисбаланс
-			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate);
-
-			// Вычисление нормы разности решений
-			double l2_norm_of_difference_v_m = sqrt((v_m_intermediate - v_m_previous_iteration).apply([](double value)->double {return value * value; }).sum());
-			double l2_norm_of_difference_p = sqrt((p_intermediate - p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
-			double l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
-
-			// INFO
-			std::cout << "iteration : " << internal_iteration_number << std::endl;
-			std::cout << "imbalance value : " << imbalance_value << std::endl;
-			std::cout << "v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
-			std::cout << "p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
-			std::cout << "alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
-
-			// Контроль сходимости по дисбалансу
-			imbalance_convergence_predicate = abs(imbalance_value) > accuracy;
-			norm_convergence_predicate = (l2_norm_of_difference_v_m > accuracy) || (l2_norm_of_difference_p > accuracy) || (l2_norm_of_difference_alpha_g > accuracy);
-
-			// Выполнение внутренней итерации
-			++internal_iteration_number;
-
-			// Сохранение значений с предыдущей итерации
-			v_m_previous_iteration = v_m_intermediate;
-			p_previous_iteration = p_intermediate;
-			alpha_g_previous_iteration = alpha_g_intermediate;
-
-		} while (norm_convergence_predicate);
-		
-		internal_iteration_number = 0;
-		// Выполнение внешней итерации (итерацци по времени)
-		++external_iteration_number;
-
-		// Вычисление нормы для проверки на сходимость
-		l2_norm_of_difference_of_alpha_g = sqrt((_alpha_g - alpha_g_intermediate).apply([](double value)->double {return value * value; }).sum());
-		
-
-		_v_m = v_m_intermediate;
-		_p = p_intermediate;
-		_v_g = v_g_intermediate;
-		_alpha_g = alpha_g_intermediate;
-		
-
-		// INFO
-		std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_of_alpha_g << std::endl;
-		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
-
-
-	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 0.1);
-
-	_results_writer.WriteToFile(_p, _dz, "p.txt");
-	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");
-	// system("python Results\\plot.py p.txt");
-	// system("pause");
-}
-
-
-
+#pragma endregion
