@@ -246,18 +246,18 @@ void DriftModelSolver::CalculateApproximateMixtureVelocity(std::valarray<double>
 	for (int i = 0; i < _n_points_cell_velocities; i++)
 	{
 		// Значения в точке P' (давление и остальные параметры)
-		double p_P_stroke = _p[i];
-		double alpha_g_P_stroke = _alpha_g[i];
+		double p_P_stroke = _p[i]; // Брать с предыдущего временного шага или с предыдущей итерации ?
+		double alpha_g_P_stroke = _alpha_g[i]; // Брать с предыдущего временного шага или с предыдущей итерации ?
 		double alpha_l_P_stroke = 1 - alpha_g_P_stroke;
 		double rho_m_P_stroke = _drift_model.GetMixtureDensity(alpha_g_P_stroke, alpha_l_P_stroke, p_P_stroke, i * _dz);
 		// Значения в точке E' (давление и остальные параметры)
-		double p_E_stroke = _p[i + 1];
-		double alpha_g_E_stroke = _alpha_g[i + 1];
+		double p_E_stroke = _p[i + 1]; // Брать с предыдущего временного шага или с предыдущей итерации ?
+		double alpha_g_E_stroke = _alpha_g[i + 1]; // Брать с предыдущего временного шага или с предыдущей итерации ?
 		double alpha_l_E_stroke = 1 - alpha_g_E_stroke;
 		double rho_m_E_stroke = _drift_model.GetMixtureDensity(alpha_g_E_stroke, alpha_l_E_stroke, p_E_stroke, i * _dz);
 		// Значения в точке W' (давление и остальные параметры)
-		double p_W_stroke = i > 0 ? _p[i - 1] : 0;
-		double alpha_g_W_stroke = i > 0 ? _alpha_g[i - 1] : 0;
+		double p_W_stroke = i > 0 ? _p[i - 1] : 0; // Брать с предыдущего временного шага или с предыдущей итерации ?
+		double alpha_g_W_stroke = i > 0 ? _alpha_g[i - 1] : 0; // Брать с предыдущего временного шага или с предыдущей итерации ?
 		double alpha_l_W_stroke = 1 - alpha_g_W_stroke;
 		double rho_m_W_stroke = _drift_model.GetMixtureDensity(alpha_g_W_stroke, alpha_l_W_stroke, p_W_stroke, i * _dz);
 		// Значения в точке P
@@ -267,9 +267,9 @@ void DriftModelSolver::CalculateApproximateMixtureVelocity(std::valarray<double>
 		double alpha_g_P = _alpha_g[i];
 		double alpha_l_P = 1 - alpha_g_P;
 		double rho_m_P = _drift_model.GetMixtureDensity(alpha_g_P, alpha_l_P, p_P, i * _dz);
-		double eps_P = _eps[i];
-		double d_P = _d[i];
-		double theta_P = _theta[i];
+		double eps_P = (_eps[i] + _eps[i + 1]) / 2;
+		double d_P = (_d[i] + _d[i + 1]) / 2;
+		double theta_P = (_theta[i] + _theta[i + 1]) / 2;
 		double f_star_P = _drift_model.GetFrictionCoefficient(alpha_g_P, alpha_l_P, v_m_star_P, p_P, d_P, eps_P);
 		// Значения в точке W
 		double v_m_star_W = i > 0 ? v_m_star[i - 1] : v_m_star[i];
@@ -297,12 +297,7 @@ void DriftModelSolver::CalculateApproximateMixtureVelocity(std::valarray<double>
 		b[i] += (1 - alpha_v_relax) * alpha_p[i] * _v_m[i];
 	}
 
-
-
-
-
 	TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
-
 }
 std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const std::valarray<double>& p_corr)
 {
