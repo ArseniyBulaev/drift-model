@@ -332,6 +332,8 @@ std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const
 		v_corr[i] = -2 * (_dt / (rho_m_P + rho_m_E)) * ((p_E - p_P) / _dz);
 	}
 
+	v_corr[0] = 0;
+	v_corr[_n_points_cell_velocities - 1] = 0;
 
 	return v_corr;
 }
