@@ -297,6 +297,16 @@ void DriftModelSolver::CalculateApproximateMixtureVelocity(std::valarray<double>
 		b[i] += (1 - alpha_v_relax) * alpha_p[i] * _v_m[i];
 	}
 
+	alpha_e[0] = 0;
+	alpha_w[0] = 0;
+	alpha_p[0] = 1;
+	b[0] = _v_m[0];
+
+	alpha_e[_n_points_cell_velocities - 1] = 0;
+	alpha_w[_n_points_cell_velocities - 1] = 0;
+	alpha_p[_n_points_cell_velocities - 1] = 1;
+	b[_n_points_cell_velocities - 1] = _v_m[_n_points_cell_velocities - 1];
+
 	TDMA(v_m_intermediate, alpha_p, alpha_e, alpha_w, b);
 }
 std::valarray<double> DriftModelSolver::CalculateMixtureVelocityCorrection(const std::valarray<double>& p_corr)
@@ -361,6 +371,15 @@ std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::va
 		b[i] = alpha_g_0 * rho_g_0 * _dz / _dt;
 	}
 
+	alpha_e[0] = 0;
+	alpha_w[0] = 0;
+	alpha_p[0] = 1;
+	b[0] = _alpha_g[0];
+
+	alpha_e[_n_points_cell_properties - 1] = 0;
+	alpha_w[_n_points_cell_properties - 1] = 0;
+	alpha_p[_n_points_cell_properties - 1] = 1;
+	b[_n_points_cell_properties - 1] = _alpha_g[_n_points_cell_properties - 1];
 
 	TDMA(alpha_gas, alpha_p, alpha_e, alpha_w, b);
 
@@ -474,6 +493,15 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 
 	}
 
+	alpha_e[0] = 0;
+	alpha_w[0] = 0;
+	alpha_p[0] = 1;
+	b[0] = _p[0];
+
+	/*alpha_e[_n_points_cell_properties - 1] = 0;
+	alpha_w[_n_points_cell_properties - 1] = 0;
+	alpha_p[_n_points_cell_properties - 1] = 1;
+	b[_n_points_cell_properties - 1] = _p[_n_points_cell_properties - 1];*/
 
 	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
 
