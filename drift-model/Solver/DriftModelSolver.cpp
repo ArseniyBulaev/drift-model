@@ -86,7 +86,7 @@ void DriftModelSolver::SimpleAlgorithm()
 
 
 			// Вычисление поправки к давлению
-			p_corr = CalculatePressureCorrection(v_m_intermediate);
+			p_corr = CalculatePressureCorrection(v_m_intermediate, p_intermediate);
 
 			// Исправление давления
 			p_intermediate = _p + alpha_p_relax * p_corr;
@@ -178,10 +178,6 @@ void DriftModelSolver::CorrectTimeStep(const std::valarray<double>  & v_m_interm
 		_dt *= 2;
 	}
 
-	if (C > 1)
-	{
-		double b;
-	}
 }
 
 void DriftModelSolver::InitializeGeometryParameters()
@@ -387,7 +383,7 @@ std::valarray<double> DriftModelSolver::CalculateGasVolumeFraction(const std::va
 
 	return alpha_gas;
 }
-std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::valarray<double>& v_m_intermediate)
+std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::valarray<double>& v_m_intermediate, const std::valarray<double> & p_intermediate)
 {
 	// Поправка на давление
 	std::valarray<double> p_corr(0.0, _n_points_cell_properties);
@@ -416,13 +412,13 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 		// Значения на текущем временном шаге
 		double alpha_g_P = _alpha_g[i];
 		double alpha_l_P = 1 - alpha_g_P;
-		double p_P = _p[i];
+		double p_P = p_intermediate[i];
 		double rho_m_P = _drift_model.GetMixtureDensity(alpha_g_P, alpha_l_P, p_P, _dz * i);
 
 		// Значения на правой грани
 
 		double v_m_star_e = i < _n_points_cell_velocities ? v_m_intermediate[i] : 0;
-		double p_e = i < _n_points_cell_properties - 1 ? (_p[i] + _p[i + 1]) / 2 : 0;
+		double p_e = i < _n_points_cell_properties - 1 ? (p_intermediate[i] + p_intermediate[i + 1]) / 2 : 0;
 		double alpha_g_e = i < _n_points_cell_properties - 1 ? (_alpha_g[i] + _alpha_g[i + 1]) / 2 : 0;
 		double alpha_l_e = 1 - alpha_g_e;
 		double rho_g_e = _drift_model.GetGasDensity(p_e, _dz * i);
@@ -438,7 +434,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 
 		// Значения на левой грани контрольного объёма
 		double v_m_star_w = i > 0 ? v_m_intermediate[i - 1] : 0;
-		double p_w = i > 0 ? (_p[i] + _p[i - 1]) / 2 : 0;
+		double p_w = i > 0 ? (p_intermediate[i] + p_intermediate[i - 1]) / 2 : 0;
 		double alpha_g_w = i > 0 ? (_alpha_g[i] + _alpha_g[i - 1]) / 2 : 0;
 		double alpha_l_w = 1 - alpha_g_w;
 		double rho_g_w = _drift_model.GetGasDensity(p_w, _dz * i);
@@ -456,7 +452,7 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 		/* Значения в центре конечного объёма, находящегося справа от текущего */
 		double alpha_g_E = i < _n_points_cell_properties - 1 ? _alpha_g[i + 1] : 0;
 		double alpha_l_E = 1 - alpha_g_E;
-		double p_E = i < _n_points_cell_properties - 1 ? _p[i + 1] : 0;
+		double p_E = i < _n_points_cell_properties - 1 ? p_intermediate[i + 1] : 0;
 		double rho_m_E = i < _n_points_cell_properties - 1 ? _drift_model.GetMixtureDensity(alpha_g_E, alpha_l_E, p_E, _dz * i) : 0;
 
 
@@ -464,16 +460,13 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 		/* Значения в центре конечного объёма, находящегося слева от текущего */
 		double alpha_g_W = i > 0 ? _alpha_g[i - 1] : 0;
 		double alpha_l_W = 1 - alpha_g_W;
-		double p_W = i > 0 ? _p[i - 1] : 0;
+		double p_W = i > 0 ? p_intermediate[i - 1] : 0;
 		double rho_m_W = i > 0 ? _drift_model.GetMixtureDensity(alpha_g_W, alpha_l_W, p_W, _dz * i) : 0;
 
 
 		// Линейная поправка к давлению
 		alpha_e[i] = (2 * _dt / (_dz * (rho_m_P + rho_m_E))) * (C_0_e * alpha_g_e * rho_g_e + (1 - alpha_g_e * C_0_e) * rho_l_e);
 		alpha_w[i] = (2 * _dt / (_dz * (rho_m_W + rho_m_P))) * (C_0_w * alpha_g_w * rho_g_w + (1 - alpha_g_w * C_0_w) * rho_l_w);
-
-
-
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
 
 		b[i] = _dz / _dt * (rho_m_0_P - rho_m_P)
