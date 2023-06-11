@@ -259,6 +259,9 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	// Устье скважины
 	size_t index_wt = 0;
 
+	// Усовие на давление
+	p[index_wt] = 0;
+
 	// Условие на объёмную долю
 	alpha_g[index_wb_property] = gas_flow / (gas_flow + liquid_flow);
 	alpha_g[index_wt] = 0;
