@@ -79,7 +79,8 @@ void DriftModelSolver::SimpleAlgorithm()
 
 		do
 		{
-			CorrectTimeStep(v_m_intermediate);
+			// Корректировка шага по времени согласно условию Куранта
+			// CorrectTimeStep(v_m_intermediate);
 
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureVelocity(v_m_intermediate);
@@ -131,7 +132,7 @@ void DriftModelSolver::SimpleAlgorithm()
 			p_previous_iteration = p_intermediate;
 			alpha_g_previous_iteration = alpha_g_intermediate;
 
-		} while (norm_convergence_predicate);
+		} while (norm_convergence_predicate && imbalance_convergence_predicate);
 
 		internal_iteration_number = 0;
 		// Выполнение внешней итерации (итерацци по времени)
@@ -152,9 +153,10 @@ void DriftModelSolver::SimpleAlgorithm()
 		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
 
 
-	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 0.1);
+	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 10);
 
-	_results_writer.WriteToFile(_p, _dz, "p.txt");
+	double atm = 101300;
+	_results_writer.WriteToFile((_p + atm) / atm, _dz, "p.txt");
 	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");
 	// system("python Results\\plot.py p.txt");
 	// system("pause");
