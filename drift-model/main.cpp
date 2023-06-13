@@ -12,9 +12,9 @@ using namespace std;
 
 int main() {
 
-	double dz = 0.001;
+	double dz = 0.01;
 	double dt = 0.0001;
-	Well well = Well({ WellSegment(10,0,0,0.1)});
+	Well well = Well({ WellSegment(1,0,0,0.1)});
 	MathModel::TaskType task_type = MathModel::TaskType::BubblesRising;
 	DriftModelSolver solver(dz, dt, well, task_type);
 

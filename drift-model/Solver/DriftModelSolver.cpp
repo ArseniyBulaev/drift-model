@@ -155,8 +155,8 @@ void DriftModelSolver::SimpleAlgorithm()
 
 	} while (/*l2_norm_of_difference_of_alpha_g >= accuracy*/ _dt * external_iteration_number <= 10);
 
-	double atm = 101300;
-	_results_writer.WriteToFile((_p + atm) / atm, _dz, "p.txt");
+
+	_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p.txt");
 	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");
 	// system("python Results\\plot.py p.txt");
 	// system("pause");

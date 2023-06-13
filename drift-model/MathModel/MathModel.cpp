@@ -225,9 +225,11 @@ void MathModel::DriftModel::SetBubblesRisingInitialConditions(
 		alpha_g[i] = 0;
 	}
 
+	
+
 	for (size_t i = 0; i < p.size(); ++i)
 	{
-		p[i] = CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), (i + 1) * dz);
+		p[i] = atm + CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), (i + 1) * dz);
 	}
 	
 	for (size_t i = 0; i < v_m.size(); ++i)
@@ -260,7 +262,7 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	size_t index_wt = 0;
 
 	// ”совие на давление
-	p[index_wt] = 0;
+	p[index_wt] = atm;
 
 	// ”словие на объЄмную долю
 	alpha_g[index_wb_property] = gas_flow / (gas_flow + liquid_flow);
@@ -269,14 +271,14 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	// ”словие на скорость
 	v_g[index_wb_velocity] = - gas_flow / S;
 	v_l[index_wb_velocity] = - liquid_flow / S;
-	v_g[index_wt] = 0;
-	v_l[index_wt] = 0;
+	v_g[index_wt] = v_g[index_wt + 1];
+	v_l[index_wt] = v_l[index_wt + 1];
 
 	// ѕересчЄт значений на €чейку дл€ скорости
 	double alpha_g_mid = (alpha_g[index_wb_property] + alpha_g[index_wb_property - 1]) / 2;
 	double alpha_l_mid = 1 - alpha_g_mid;
 	v_m[index_wb_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_wb_velocity], v_l[index_wb_velocity]);
-	v_m[index_wt] = 0;
+	v_m[index_wt] = v_m[index_wt + 1];
 }
 
 void MathModel::DriftModel::SetDebugInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, std::valarray<double>& v_g, std::valarray<double>& v_l, double dz)

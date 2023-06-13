@@ -15,6 +15,7 @@ namespace MathModel
 		#pragma region Fields
 		public:
 		const double g = 9.81;  // Ускорение свободного падения
+		const double atm = 101300; // Атмосферное давление
 		private:
 		TaskType _task_type; // Выбранная пользователем задача
 		double _U = 0; // Характерная скорость
