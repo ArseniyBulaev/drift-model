@@ -65,7 +65,7 @@ std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<do
 		double r_b = r_b0; // Как первое приближение взята константа. Должна быть расчётная формула
 		double mb_0 = 4 / 3 * pi * pow(r_b0, 3) * rho_g_0; // Масса пузырька
 		double mu_0 = GetLiquidViscosity(); // Вязкость чистой жидкости
-		double St = mb_0 * _U * pow(r_b, 3) / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
+		double St = mb_0 * _U / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
 		double Fr = _U / sqrt(g * R); // Число Фруда
 		double Re = rho_l_0 * _U * R / mu_0;
 		double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
@@ -105,7 +105,7 @@ std::valarray<double> MathModel::DriftModel::CalculateV_d(const std::valarray<do
 		double rho_g_0 = GetCharacteristicGasDensity(); // Характерная плотность газа
 		double mb_0 = 4 / 3 * pi * pow(r_b0, 3) * rho_g_0; // Масса пузырька
 		double mu_0 = GetLiquidViscosity(); // Вязкость чистой жидкости
-		double St = mb_0 * _U * pow(r_b, 3) / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
+		double St = mb_0 * _U / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
 		double Fr = _U / sqrt(g * R); // Число Фруда
 		double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
 		double rho_l = GetLiquidDensity(p[i]) / rho_l_0; // Текущая плотность жидкости
