@@ -106,9 +106,10 @@ void DriftModelSolver::SimpleAlgorithm()
 			v_l_intermediate = CalculateLiquidVelocity(v_m_intermediate, alpha_g_intermediate, v_g_intermediate);
 
 			// Дисбаланс
-			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate);
+			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate, alpha_g_previous_iteration, p_previous_iteration, v_g_previous_iteration);
 
 			// Вычисление нормы разности решений
+			double l2_norm_of_difference_v_g = sqrt((v_g_intermediate - v_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
 			double l2_norm_of_difference_v_m = sqrt((v_m_intermediate - v_m_previous_iteration).apply([](double value)->double {return value * value; }).sum());
 			double l2_norm_of_difference_p = sqrt((p_intermediate - p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
 			double l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
@@ -116,6 +117,7 @@ void DriftModelSolver::SimpleAlgorithm()
 			// INFO
 			std::cout << "iteration : " << internal_iteration_number << std::endl;
 			std::cout << "imbalance value : " << imbalance_value << std::endl;
+			std::cout << "v_g L2 norm of difference : " << l2_norm_of_difference_v_g << std::endl;
 			std::cout << "v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
 			std::cout << "p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
 			std::cout << "alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
@@ -129,10 +131,12 @@ void DriftModelSolver::SimpleAlgorithm()
 
 			// Сохранение значений с предыдущей итерации
 			v_m_previous_iteration = v_m_intermediate;
+			v_g_previous_iteration = v_g_intermediate;
+			v_l_previous_iteration = v_l_intermediate;
 			p_previous_iteration = p_intermediate;
 			alpha_g_previous_iteration = alpha_g_intermediate;
 
-		} while (norm_convergence_predicate && imbalance_convergence_predicate);
+		} while (imbalance_convergence_predicate);
 
 		internal_iteration_number = 0;
 		// Выполнение внешней итерации (итерацци по времени)
@@ -493,12 +497,12 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 	alpha_e[0] = 0;
 	alpha_w[0] = 0;
 	alpha_p[0] = 1;
-	b[0] = _p[0];
+	b[0] = 0;
 
-	/*alpha_e[_n_points_cell_properties - 1] = 0;
+	alpha_e[_n_points_cell_properties - 1] = 0;
 	alpha_w[_n_points_cell_properties - 1] = 0;
 	alpha_p[_n_points_cell_properties - 1] = 1;
-	b[_n_points_cell_properties - 1] = _p[_n_points_cell_properties - 1];*/
+	b[_n_points_cell_properties - 1] = 0;
 
 	TDMA(p_corr, alpha_p, alpha_e, alpha_w, b);
 
@@ -556,17 +560,24 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocityGeneral(const std::v
 
 	return v_g;
 }
-double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate)
+double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate,
+	const std::valarray<double>& p_intermediate,
+	const std::valarray<double>& v_g_intermediate,
+	const std::valarray<double>& alpha_g_previous_iteration,
+	const std::valarray<double>& p_previous_iteration,
+	const std::valarray<double>& v_g_previous_iteration
+	)
 {
-	double imbalance_value = 0;
+	std::valarray<double> imbalance(_n_points_cell_properties);
+	double sum_imbalance_value = 0;
 	for (int i = 1; i < _n_points_cell_properties; i++)
 	{
 		// Точка P
 		double rho_g_P = _drift_model.GetGasDensity(p_intermediate[i], _dz * i);
 		double alpha_g_P = alpha_g_intermediate[i];
 		double v_g_P = (v_g_intermediate[i - 1] + (i < _n_points_cell_properties - 1 ? v_g_intermediate[i] : 0)) / 2;
-		double rho_g_o_P = _drift_model.GetGasDensity(_p[i], _dz * i);
-		double alpha_g_o_P = _alpha_g[i];
+		double rho_g_o_P = _drift_model.GetGasDensity(p_previous_iteration[i], _dz * i);
+		double alpha_g_o_P = alpha_g_previous_iteration[i];
 
 		// Точка W
 		double rho_g_W = _drift_model.GetGasDensity(p_intermediate[i - 1], _dz * i);
@@ -574,10 +585,13 @@ double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alph
 		double v_g_W = ((i - 2 > 0 ? v_g_intermediate[i - 2] : 0) + v_g_intermediate[i - 1]) / 2;
 
 		// Суммарный дисбаланс 
-		imbalance_value += (rho_g_P * alpha_g_P - rho_g_o_P * alpha_g_o_P) / _dt + (rho_g_P * alpha_g_P * v_g_P - rho_g_W * alpha_g_W * v_g_W) / _dz;
+		imbalance[i] = (rho_g_P * alpha_g_P - rho_g_o_P * alpha_g_o_P) / _dt + (rho_g_P * alpha_g_P * v_g_P - rho_g_W * alpha_g_W * v_g_W) / _dz;
+		sum_imbalance_value += imbalance[i];
 	}
 
-	return imbalance_value;
+	_results_writer.WriteToFile(imbalance, _dz, "imbalance.txt");
+
+	return sum_imbalance_value;
 }
 // Метод матричной прогонки
 void DriftModelSolver::TDMA(std::valarray<double>& v, const std::valarray<double>& a, const std::valarray<double>& b, const std::valarray<double>& c, const std::valarray<double>& d)
