@@ -56,9 +56,6 @@
     <ClInclude Include="MathModel\MathModel.h">
       <Filter>Файлы заголовков\MathModel</Filter>
     </ClInclude>
-    <ClInclude Include="Solver\DriftModelSolver.h">
-      <Filter>Файлы заголовков\Solver</Filter>
-    </ClInclude>
     <ClInclude Include="Well\Well.h">
       <Filter>Файлы заголовков\Well</Filter>
     </ClInclude>
@@ -67,6 +64,9 @@
     </ClInclude>
     <ClInclude Include="Writer.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Solver\DriftModelSolver.h">
+      <Filter>Файлы заголовков\Solver</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

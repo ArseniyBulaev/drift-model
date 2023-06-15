@@ -27,7 +27,7 @@ private:
 	size_t _n_points_cell_velocities; // Число точек для значений скоростей
 
 	double alpha_p_relax = 0.9; // Коэффициент релаксации для давления
-	double alpha_v_relax = 0.3; // Коэффициент релаксации для скорости
+	double alpha_v_relax = 0.9; // Коэффициент релаксации для скорости
 
 	// Вектора с расчётными параметрами
 	std::valarray<double> _theta; // Угол наклона трубы
@@ -46,17 +46,12 @@ private:
 	int CalculateNumberOfPoints();
 	void CalculateApproximateMixtureVelocity(std::valarray<double> & v_m_intermediate);
 	std::valarray<double> CalculateMixtureVelocityCorrection(const std::valarray<double> & p_corr);
-	std::valarray<double> CalculateGasVelocity(const std::valarray<double> & p, const std::valarray<double> & v_m);
+	std::valarray<double> CalculateGasVelocity(const std::valarray<double>& p, const std::valarray<double>& v_m, const std::valarray<double> & alpha_g_previous_iteration);
 	std::valarray<double> CalculateLiquidVelocity(const std::valarray<double>& v_m, const std::valarray<double>& alpha_g, const std::valarray<double>& v_g);
 	std::valarray<double> CalculateGasVolumeFraction(const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g);
 	std::valarray<double> CalculatePressureCorrection(const std::valarray<double> & v_m_intermediate, const std::valarray<double>& p_intermediate);
 	std::valarray<double> CalculateGasVelocityGeneral(const std::valarray<double> & v_m);
-	double CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate,
-		const std::valarray<double>& p_intermediate,
-		const std::valarray<double>& v_g_intermediate,
-		const std::valarray<double>& alpha_g_previous_iteration,
-		const std::valarray<double>& p_previous_iteration,
-		const std::valarray<double>& v_g_previous_iteration);
+	double CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate, const std::valarray<double>& v_l_intermediate);
 	void TDMA(std::valarray<double> & v, const std::valarray<double> & a, const std::valarray<double> & b, const std::valarray<double> & c, const std::valarray<double> & d);
 	void SimpleAlgorithm();
 };

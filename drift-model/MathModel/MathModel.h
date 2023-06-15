@@ -47,6 +47,7 @@ namespace MathModel
 			std::valarray<double>& v_m,
 			std::valarray<double>& v_g,
 			std::valarray<double>& v_l,
+			const std::valarray<double>& theta,
 			double dz);
 		void SetBoundaryConditions(
 			std::valarray<double>& alpha_g,
@@ -97,6 +98,7 @@ namespace MathModel
 			std::valarray<double>& v_m,
 			std::valarray<double>& v_g,
 			std::valarray<double>& v_l,
+			const std::valarray<double>& theta,
 			double dz);
 
 		void SetBubblesRisingBoundaryConditions(
