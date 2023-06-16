@@ -1,5 +1,6 @@
 #include "DriftModelSolver.h"
 
+
 //DEBUG
 #include <iostream>
 #include <stdexcept>
@@ -72,15 +73,21 @@ void DriftModelSolver::SimpleAlgorithm()
 	std::valarray<double> v_l_previous_iteration = _v_l;
 	std::valarray<double> alpha_g_previous_iteration = _alpha_g;
 
+	
+
+
+
 	do
 	{
+		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
+
 		// Граничные условия
 		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
 
 		do
 		{
 			// Корректировка шага по времени согласно условию Куранта
-			CorrectTimeStep(v_m_intermediate);
+ 			CorrectTimeStep(v_m_intermediate);
 
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureVelocity(v_m_intermediate);
@@ -107,7 +114,7 @@ void DriftModelSolver::SimpleAlgorithm()
 			// Дисбаланс
 			double imbalance_value = CalculateGasImbalance(alpha_g_intermediate, p_intermediate, v_g_intermediate, v_l_intermediate);
 			imbalance_convergence_predicate = imbalance_value > accuracy;
-			// std::cout << "imbalance value : " << imbalance_value << std::endl;
+			std::cout << "imbalance value : " << imbalance_value << std::endl;
 			std::cout << "iteration : " << internal_iteration_number << std::endl;
 
 			// Вычисление нормы разности решений
@@ -115,6 +122,12 @@ void DriftModelSolver::SimpleAlgorithm()
 			double l2_norm_of_difference_p = sqrt((p_intermediate - p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
 			double l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
 			double l2_norm_of_difference_v_g = sqrt((v_g_intermediate - v_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+
+			// INFO
+			std::cout << "\t\t v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
+			std::cout << "\t\t p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
+			std::cout << "\t\t v_g L2 norm of difference : " << l2_norm_of_difference_v_g << std::endl;
+			std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
 			
 			// Контроль сходимости по норме
 			norm_convergence_predicate = (l2_norm_of_difference_v_m > accuracy) /*|| (l2_norm_of_difference_p > accuracy) || (l2_norm_of_difference_alpha_g > accuracy)*/;
@@ -131,22 +144,11 @@ void DriftModelSolver::SimpleAlgorithm()
 
 		} while (norm_convergence_predicate);
 
-		
-
-
 
 		internal_iteration_number = 0;
 		// Выполнение внешней итерации (итерацци по времени)
 		++external_iteration_number;
 
-		// Вычисление нормы разности решений
-		double l2_norm_of_difference_v_m = sqrt((v_m_intermediate - _v_m).apply([](double value)->double {return value * value; }).sum());
-		double l2_norm_of_difference_p = sqrt((p_intermediate - _p).apply([](double value)->double {return value * value; }).sum());
-		double l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - _alpha_g).apply([](double value)->double {return value * value; }).sum());
-		double l2_norm_of_difference_v_g = sqrt((v_g_intermediate - _v_g).apply([](double value)->double {return value * value; }).sum());
-
-		// Контроль сходимости по норме
-		norm_convergence_predicate = (l2_norm_of_difference_v_m > accuracy) || (l2_norm_of_difference_p > accuracy) || (l2_norm_of_difference_alpha_g > accuracy);
 
 		_v_m = v_m_intermediate;
 		_p = p_intermediate;
@@ -155,27 +157,20 @@ void DriftModelSolver::SimpleAlgorithm()
 		_alpha_g = alpha_g_intermediate;
 
 		// Снос из граничной ячейки сверху
-
 		if (abs(_alpha_g[0]) > 0)
 		{
-			auto b = _v_g[0] * _dt / _dz;
-			auto a = _alpha_g[0] * _v_g[0] * _dt / _dz;
-			_alpha_g[0] += a;
+			_alpha_g[0] += _alpha_g[0] * _v_g[0] * _dt / _dz;
 		}
 
-		
 
-		// INFO
-		std::cout << "\t\t v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
-		std::cout << "\t\t p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
-		// std::cout << "\t\t v_g L2 norm of difference : " << l2_norm_of_difference_v_g << std::endl;
-		std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
-		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
-		//std::cout << "\t\t external iteration number : " << external_iteration_number << std::endl << std::endl;
+	} while (_dt * external_iteration_number < 1000);
 
 
-	} while (_dt * external_iteration_number < 16);
+	double a_v = _drift_model.GasSteadyFlowAnalyticsVelocity(_p[0], _well.GetLength(), _well.GetBottomCrossSectionArea());
+	double a_rho = _drift_model.GasSteadyFlowAnalyticsDensity(a_v, _p[0]);
 
+	double b_v = _v_g[_n_points_cell_velocities - 1];
+	double b_rho = _drift_model.GasSteadyFlowAnalyticsDensity(b_v, _p[0]);
 
 	_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p.txt");
 	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");
@@ -519,10 +514,10 @@ std::valarray<double> DriftModelSolver::CalculatePressureCorrection(const std::v
 			+ v_m_star_w * ((1 - alpha_g_w * C_0_w) * rho_l_w);
 
 		// Случай постоянной плотности
-		alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
+		/*alpha_e[i] = 2 * _dt / (_dz * (rho_m_P + rho_m_E));
 		alpha_w[i] = 2 * _dt / (_dz * (rho_m_W + rho_m_P));
 		alpha_p[i] = alpha_e[i] + alpha_w[i];
-		b[i] = v_m_star_w - v_m_star_e;
+		b[i] = v_m_star_w - v_m_star_e;*/
 
 
 	}
@@ -553,7 +548,7 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocity(const std::valarray
 	std::valarray<double>v_g;
 	std::valarray<double> C_0 = _drift_model.CalculateC_0(_d, alpha_g_previous_iteration,  p, _n_points_cell_velocities, _dz);
 	std::valarray<double> v_d = _drift_model.CalculateV_d(_d, alpha_g_previous_iteration,  p, _n_points_cell_velocities);
-	v_g =  v_m;
+	v_g = C_0 *v_m + v_d;
 	return v_g;
 }
 
@@ -599,13 +594,9 @@ std::valarray<double> DriftModelSolver::CalculateGasVelocityGeneral(const std::v
 double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate, const std::valarray<double>& v_l_intermediate)
 {
 	double gas_imbalance_value = 0;
-	// Debug : What is wrong with with imbalance ?
-	std::valarray<double> gas_imbalances(_n_points_cell_properties);
-	std::valarray<double> liquid_imbalances(_n_points_cell_properties);
 
 	for (int i = 1; i < _n_points_cell_properties; i++)
 	{
-		// Gas
 		// Точка P
 		double rho_g_P = _drift_model.GetGasDensity(p_intermediate[i], _dz * i);
 		double alpha_g_P = alpha_g_intermediate[i];
@@ -617,28 +608,7 @@ double DriftModelSolver::CalculateGasImbalance(const std::valarray<double>& alph
 		double rho_g_W = _drift_model.GetGasDensity(p_intermediate[i - 1], _dz * i);
 		double alpha_g_W = alpha_g_intermediate[i - 1];
 		double v_g_W = ((i - 2 > 0 ? v_g_intermediate[i - 2] : 0) + v_g_intermediate[i - 1]) / 2;
-
-		// Liquid
-		// Точка P
-		double rho_l_P = _drift_model.GetLiquidDensity(p_intermediate[i]);
-		double alpha_l_P = 1 - alpha_g_intermediate[i];
-		double v_l_P = (v_l_intermediate[i - 1] + (i < _n_points_cell_properties - 1 ? v_l_intermediate[i] : 0)) / 2;
-		double rho_l_o_P = _drift_model.GetLiquidDensity(_p[i]);
-		double alpha_l_o_P = 1 - _alpha_g[i];
-
-		// Точка W
-		double rho_l_W = _drift_model.GetLiquidDensity(p_intermediate[i - 1]);
-		double alpha_l_W = 1 - alpha_g_intermediate[i - 1];
-		double v_l_W = ((i - 2 > 0 ? v_l_intermediate[i - 2] : 0) + v_l_intermediate[i - 1]) / 2;
-
-		// Суммарный дисбаланс 
-		gas_imbalance_value += (rho_g_P * alpha_g_P - rho_g_o_P * alpha_g_o_P) / _dt +  (i != 0 ?  (rho_g_P * alpha_g_P * v_g_P - rho_g_W * alpha_g_W * v_g_W) / _dz : 0);
-		gas_imbalances[i] = (rho_g_P * alpha_g_P - rho_g_o_P * alpha_g_o_P) / _dt + (i != 0 ? (rho_g_P * alpha_g_P * v_g_P - rho_g_W * alpha_g_W * v_g_W) / _dz : 0);
-		liquid_imbalances[i] = (rho_l_P * alpha_l_P - rho_l_o_P * alpha_l_o_P) / _dt + (i != 0 ? (rho_l_P * alpha_l_P * v_l_P - rho_l_W * alpha_l_W * v_l_W) / _dz : 0);
 	}
-
-	 _results_writer.WriteToFile(gas_imbalances, _dz, "gas_imbalances.txt");
-	 _results_writer.WriteToFile(liquid_imbalances, _dz, "liuid_imbalances.txt");
 
 	return gas_imbalance_value;
 }

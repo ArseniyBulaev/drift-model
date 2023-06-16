@@ -30,8 +30,11 @@ namespace MathModel
 			switch (task_type)
 			{
 			case MathModel::TaskType::BubblesRising:
+			{
+				_alpha_g_0 = 0.05;
 				SetBubblesRisingCharacteristicVelocity(well);
 				break;
+			}
 			case MathModel::TaskType::Debug:
 				SetDebugCharacteristicVelocity(well);
 				break;
@@ -63,6 +66,9 @@ namespace MathModel
 		std::valarray<double> CalculateC_0(const std::valarray<double> & d, const std::valarray<double> & alpha_g,  const std::valarray<double>& p, size_t n_points_cell_velocities, double dz);
 		std::valarray<double> CalculateV_d(const std::valarray<double> & d, const std::valarray<double> & alpha_g, std::valarray<double> p, size_t n_points_cell_velocities);
 
+
+		double GasSteadyFlowAnalyticsVelocity(double p, double z, double F);
+		double GasSteadyFlowAnalyticsDensity(double v, double p);
 
 		// Тестовая скорость дрейфа и параметр профиля газа
 		double CalculateGasProfileParameter_TEST(double alpha_g);
@@ -127,13 +133,17 @@ namespace MathModel
 			const Well well,
 			double dt);
 
-		double GetBubblesRisingLiquidFlow(double dt);
-		double GetBubblesRisingGasFlow(double dt);
+		double GetBubblesRisingLiquidFlow();
+		double GetBubblesRisingGasFlow();
 		void SetBubblesRisingCharacteristicVelocity(Well well);
 		void SetDebugCharacteristicVelocity(Well well);
 		void SetDebugCharacteristicGasVolumeFraction();
 		#pragma endregion
 		
+
+		
+
+
 
 		double CalculateHydrostaticPressure(double rho, double h);
 		#pragma endregion

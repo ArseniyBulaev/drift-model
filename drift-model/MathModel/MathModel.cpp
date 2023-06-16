@@ -46,80 +46,104 @@ void MathModel::DriftModel::SetBoundaryConditions(
 
 std::valarray<double> MathModel::DriftModel::CalculateC_0(const std::valarray<double>& d, const std::valarray<double>& alpha_g, const std::valarray<double>& p, size_t n_points_cell_velocities, double dz)
 {
-	std::valarray<double>C_0(n_points_cell_velocities);
+	std::valarray<double>C_0(1.0, n_points_cell_velocities);
 
-	double rho_l_0 = GetCharacteristicLiquidDensity(); // Характерная плотность жидкости
-	double rho_g_0 = GetCharacteristicGasDensity(); // Характерная плотность газа
-	double dz_dimensionless = dz / _L; // Безразмерный шаг по пространству
+	//double rho_l_0 = GetCharacteristicLiquidDensity(); // Характерная плотность жидкости
+	//double rho_g_0 = GetCharacteristicGasDensity(); // Характерная плотность газа
+	//double dz_dimensionless = dz / _L; // Безразмерный шаг по пространству
 
-	for (size_t i = 0; i < n_points_cell_velocities; ++i)
-	{
-		double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
-		_alpha_g_0 = (alpha_g[i] + alpha_g[i + 1]) / 2;
+	//for (size_t i = 0; i < n_points_cell_velocities; ++i)
+	//{
+	//	double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
 
-		// Промежуточные переменные
-		const double pi = 3.14;
-		double r_0 = _alpha_g_0 * R; // Заполнение трубы пузырьками
-		double x_0 = r_0 / R; // Доля радиуса трубы, по которой течёт газ
-		double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
-		const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
-		double r_b = r_b0; // Как первое приближение взята константа. Должна быть расчётная формула
-		double mb_0 = 4 / 3 * pi * pow(r_b0, 3) * rho_g_0; // Масса пузырька
-		double mu_0 = GetLiquidViscosity(); // Вязкость чистой жидкости
-		double St = mb_0 * _U * pow(1, 3) / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
-		double Fr = _U / sqrt(g * R); // Число Фруда
-		double Re = rho_l_0 * _U * R / mu_0;
-		double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
-		double rho_l = GetLiquidDensity(p[i]) / rho_l_0; //Безразмерная Текущая плотность жидкости
-		double rho_g = GetGasDensity(p[i], dz * i) / rho_g_0; // Безразмерная Текущая плотность газа
-		double eps = R / _L; // Малый параметр (Приближение длинного канала)
+	//	// Промежуточные переменные
+	//	const double pi = 3.14;
+	//	double r_0 = 1 * R; // Заполнение трубы пузырьками
+	//	double x_0 = r_0 / R; // Доля радиуса трубы, по которой течёт газ
+	//	double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
+	//	const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
+	//	double r_b = r_b0; // Как первое приближение взята константа. Должна быть расчётная формула
+	//	double mb_0 = 4 / 3 * pi * pow(r_b0, 3) * rho_g_0; // Масса пузырька
+	//	double mu_0 = GetLiquidViscosity(); // Вязкость чистой жидкости
+	//	double St = mb_0 * _U  / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
+	//	double Fr = _U / sqrt(g * R); // Число Фруда
+	//	double Re = rho_l_0 * _U * R / mu_0;
+	//	double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
+	//	double rho_l = GetLiquidDensity(p[i]) / rho_l_0; //Безразмерная Текущая плотность жидкости
+	//	double rho_g = GetGasDensity(p[i], dz * i) / rho_g_0; // Безразмерная Текущая плотность газа
+	//	double eps = R / _L; // Малый параметр (Приближение длинного канала)
 
-		double dp_dz = eps * Re * (p[i + 1] - p[i]) / dz_dimensionless; // Безразмерный градиент давления
-		
+	//	double dp_dz = eps * Re * (p[i + 1] - p[i]) / dz_dimensionless; // Безразмерный градиент давления
+	//	
 
-		// Переменные в формуле
-		double m_0 = 1 / (r_b * mu);
-		double gamma = St / (eta * pow(Fr, 2));
-		double a = (pow(R, 2) / 4) * (-dp_dz + (Re / pow(Fr, 2)) * rho_l);
-		double b = (pow(R, 2) / 4) * (Re / pow(Fr, 2)) * (rho_l - eta * rho_g) * _alpha_g_0;
+	//	// Переменные в формуле
+	//	double m_0 = 1 / (r_b * mu);
+	//	double gamma = St / (eta * pow(Fr, 2));
+	//	double a = (pow(R, 2) / 4) * (-dp_dz + (Re / pow(Fr, 2)) * rho_l);
+	//	double b = (pow(R, 2) / 4) * (Re / pow(Fr, 2)) * (rho_l - eta * rho_g) * _alpha_g_0;
 
-		// Значение параметра профиля
-		C_0[i] = (2 * a * (1 - pow(x_0, 2)) + m_0 * (a - b) * pow(x_0, 2) - 2 * gamma * rho_l * m_0 * _alpha_g_0) / (a * (1 - pow(x_0, 4)) + m_0 * (a - b) * pow(x_0, 4) - 2 * gamma * rho_l * m_0 * _alpha_g_0 * pow(x_0, 2));
-	}
+	//	// Значение параметра профиля
+	//	C_0[i] = (2 * a * (1 - pow(x_0, 2)) + m_0 * (a - b) * pow(x_0, 2) - 2 * gamma * rho_l * m_0 * _alpha_g_0) / (a * (1 - pow(x_0, 4)) + m_0 * (a - b) * pow(x_0, 4) - 2 * gamma * rho_l * m_0 * _alpha_g_0 * pow(x_0, 2));
+	//}
 
-	return C_0 * _U;
+	return C_0 /** _U*/;
 }
 
 std::valarray<double> MathModel::DriftModel::CalculateV_d(const std::valarray<double>& d, const std::valarray<double>& alpha_g, std::valarray<double> p, size_t n_points_cell_velocities)
 {
 	std::valarray<double>v_d(n_points_cell_velocities);
 
-	for (size_t i = 0; i < n_points_cell_velocities; ++i)
-	{
-		_alpha_g_0 = (alpha_g[i] + alpha_g[i + 1]) / 2;
-		const double pi = 3.14;
-		double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
-		double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
-		const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
-		double r_b = r_b0; // Как первое приближение взята константа. Должна быть расчётная формула
-		double rho_l_0 = GetCharacteristicLiquidDensity(); // Характерная плотность жидкости
-		double rho_g_0 = GetCharacteristicGasDensity(); // Характерная плотность газа
-		double mb_0 = 4 / 3 * pi * pow(1, 3) * rho_g_0; // Масса пузырька
-		double mu_0 = GetLiquidViscosity(); // Вязкость чистой жидкости
-		double St = mb_0 * _U * pow(r_b, 3) / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
-		double Fr = _U / sqrt(g * R); // Число Фруда
-		double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
-		double rho_l = GetLiquidDensity(p[i]) / rho_l_0; // Текущая плотность жидкости
+	//for (size_t i = 0; i < n_points_cell_velocities; ++i)
+	//{
+	//	const double pi = 3.14;
+	//	double R = (d[i] + d[i + 1]) / 4; // Радиус трубы
+	//	double mu = GetMixtureViscosity(_alpha_g_0); // Характерная вязкость смеси
+	//	const double r_b0 = 1E-3; // Критическое значение для радиуса пузырька
+	//	double r_b = 1; // Как первое приближение взята константа. Должна быть расчётная формула
+	//	double rho_l_0 = GetCharacteristicLiquidDensity(); // Характерная плотность жидкости
+	//	double rho_g_0 = GetCharacteristicGasDensity(); // Характерная плотность газа
+	//	double mb_0 = 4 / 3 * pi * pow(r_b0, 3) * rho_g_0; // Масса пузырька
+	//	double mu_0 = GetLiquidViscosity(); // Вязкость чистой жидкости
+	//	double St = mb_0 * _U  / (6 * pi * mu_0 * R * r_b0); // Число Cтокса
+	//	double Fr = _U / sqrt(g * R); // Число Фруда
+	//	double eta = rho_g_0 / rho_l_0; // Отнощение плотности газа к плотности жидкости
+	//	double rho_l = GetLiquidDensity(p[i]) / rho_l_0; // Текущая плотность жидкости
 
-		// Переменные в формуле
-		double m_0 = 1 / (r_b * mu);
-		double gamma = St / (eta * pow(Fr, 2));
+	//	// Переменные в формуле
+	//	double m_0 = 1 / (r_b * mu);
+	//	double gamma = St / (eta * pow(Fr, 2));
 
-		// Скорость дрейфа
-		v_d[i] = -gamma * rho_l * m_0 * (1 - _alpha_g_0);
-	}
+	//	// Скорость дрейфа
+	//	v_d[i] = -gamma * rho_l * m_0 * (1 - _alpha_g_0);
+	//}
 
 	return v_d * _U;
+}
+
+double MathModel::DriftModel::GasSteadyFlowAnalyticsVelocity(double p, double z, double F)
+{
+
+
+	double R = 8.314; // Газовая постоянная
+	double T = 293;   // Температура в Кельвинах
+	double C1 = -0.03567;
+	double v = C1 * R * T / (p * F);
+	return v;
+}
+
+double MathModel::DriftModel::GasSteadyFlowAnalyticsDensity(double v, double p)
+{
+	
+	
+
+	double R = 8.314; // Газовая постоянная
+	double T = 293;   // Температура в Кельвинах
+	double C2 = 28076.974;
+
+	double must_be_zero = 0.5 * v * v + R * T * log(p) - C2;
+
+	
+	return must_be_zero;
 }
 
 double MathModel::DriftModel::CalculateHydrostaticPressure(double rho, double h)
@@ -168,11 +192,10 @@ double MathModel::DriftModel::GetMixtureViscosity(double alpha_g)
 double MathModel::DriftModel::GetGasDensity(double p, double z)
 {
 	
-	return  GetCharacteristicGasDensity(); // Как первое приближение возвращается константа
-	double M = 28.97; // Молярная масса воздуха
+	// return  GetCharacteristicGasDensity(); // Как первое приближение возвращается константа
 	double R = 8.314; // Газовая постоянная
 	double T = 293;   // Температура в Кельвинах
-	return z != 0 ? GetLiquidDensity(p) * g * z * M / (R * T) : GetCharacteristicGasDensity();
+	return p / (R * T);
 }
 
 double MathModel::DriftModel::GetLiquidDensity(double p)
@@ -242,7 +265,7 @@ void MathModel::DriftModel::SetBubblesRisingInitialConditions(
 
 	for (size_t i = 0; i < p.size(); ++i)
 	{
-		p[i] =  CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), (i) * dz) * cos(theta[i]);
+		p[i] = atm + CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), (i) * dz) * cos(theta[i]);
 	}
 	
 	for (size_t i = 0; i < v_m.size(); ++i)
@@ -263,8 +286,8 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	const Well well,
 	double dt)
 {
-	double gas_flow = GetBubblesRisingGasFlow(dt);
-	double liquid_flow = GetBubblesRisingLiquidFlow(dt);
+	double gas_flow = GetBubblesRisingGasFlow();
+	double liquid_flow = GetBubblesRisingLiquidFlow();
 	double S = well.GetBottomCrossSectionArea();
 
 	// Забой скважины
@@ -274,7 +297,7 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	// Устье скважины
 	size_t index_wt = 0;
 
-	p[index_wt] = 0;
+	p[index_wt] = atm;
 
 	// Условие на объёмную долю
 	alpha_g[index_wb_property] = 0.05;
@@ -341,23 +364,24 @@ void MathModel::DriftModel::SetDebugBoundaryConditions(std::valarray<double>& al
 
 }
 
-double MathModel::DriftModel::GetBubblesRisingLiquidFlow(double dt)
+double MathModel::DriftModel::GetBubblesRisingLiquidFlow()
 {
 	double flow_value = 0.1 / 600; // 100 литров / минута
-	return flow_value * dt;
+	return flow_value;
 }
 
-double MathModel::DriftModel::GetBubblesRisingGasFlow(double dt)
+double MathModel::DriftModel::GetBubblesRisingGasFlow()
 {
-	double flow_value = GetBubblesRisingLiquidFlow(dt) / 10;
+	double flow_value = GetBubblesRisingLiquidFlow() / 10;
 	return flow_value;
 }
 
 void MathModel::DriftModel::SetBubblesRisingCharacteristicVelocity(Well well)
 {
-	double gas_velocity = GetBubblesRisingGasFlow(1) / well.GetBottomCrossSectionArea();
-	double liquid_velocity = GetBubblesRisingLiquidFlow(1) / well.GetBottomCrossSectionArea();
+	double gas_velocity = GetBubblesRisingGasFlow() / well.GetBottomCrossSectionArea();
+	double liquid_velocity = GetBubblesRisingLiquidFlow() / well.GetBottomCrossSectionArea();
 	_U =  std::max(gas_velocity, liquid_velocity);
+	_U = 1.1E-1;
 }
 
 
