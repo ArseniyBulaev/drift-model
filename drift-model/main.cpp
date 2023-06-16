@@ -12,6 +12,7 @@ using namespace std;
 
 int main() {
 
+
 	double dz = 0.1;
 	double dt = 0.01;
 	Well well = Well({ WellSegment(10,0,0,0.1)});

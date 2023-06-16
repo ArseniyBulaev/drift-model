@@ -48,6 +48,15 @@ void DriftModelSolver::SimpleAlgorithm()
 	// Точность
 	const double accuracy = 1E-3;
 
+	// Время расчёта
+	const double calculation_time = 800;
+	// Условие печати в файл
+	const double print_step = calculation_time / 4;
+	// Число итераций по времени
+	const int time_iterations_count = calculation_time /  _dt;
+	// Печатаем каждую итерацию кратную данному числу
+	const int print_iteration_step = print_step / _dt;
+
 	// Проверка сходимости
 	bool imbalance_convergence_predicate;
 	bool norm_convergence_predicate;
@@ -87,7 +96,7 @@ void DriftModelSolver::SimpleAlgorithm()
 		do
 		{
 			// Корректировка шага по времени согласно условию Куранта
- 			CorrectTimeStep(v_m_intermediate);
+ 			PrintCourantNumber(v_m_intermediate);
 
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureVelocity(v_m_intermediate);
@@ -162,8 +171,17 @@ void DriftModelSolver::SimpleAlgorithm()
 			_alpha_g[0] += _alpha_g[0] * _v_g[0] * _dt / _dz;
 		}
 
+		if (external_iteration_number % print_iteration_step == 0)
+		{
+			_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_v_m, _dz, "v_m_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_v_g, _dz, "v_g_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_v_l, _dz, "v_l_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
+		}
 
-	} while (_dt * external_iteration_number < 1000);
+
+	} while (_dt * external_iteration_number < calculation_time);
 
 
 	double a_v = _drift_model.GasSteadyFlowAnalyticsVelocity(_p[0], _well.GetLength(), _well.GetBottomCrossSectionArea());
@@ -172,30 +190,17 @@ void DriftModelSolver::SimpleAlgorithm()
 	double b_v = _v_g[_n_points_cell_velocities - 1];
 	double b_rho = _drift_model.GasSteadyFlowAnalyticsDensity(b_v, _p[0]);
 
-	_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p.txt");
-	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g.txt");
-	_results_writer.WriteToFile(_v_m, _dz, "v_m.txt");
-	_results_writer.WriteToFile(_v_g, _dz, "v_g.txt");
-	_results_writer.WriteToFile(_v_l, _dz, "v_l.txt");
+	
 }
 
 #pragma region Support
 
-void DriftModelSolver::CorrectTimeStep(const std::valarray<double>  & v_m_intermediate)
+void DriftModelSolver::PrintCourantNumber(const std::valarray<double>  & v_m_intermediate)
 {
 	// Вычисление числа Куранта
 	auto U = v_m_intermediate.max();
 	double C = abs(U) * _dt / _dz;
 	std::cout << "Courant number value : " << C << std::endl;
-	/*if (C > 0.5)
-	{
-		_dt /= 2;
-	}
-
-	if (C < 0.1)
-	{
-		_dt *= 2;
-	}*/
 
 }
 

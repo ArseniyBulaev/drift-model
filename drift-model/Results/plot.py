@@ -3,22 +3,27 @@ import numpy as np
 import sys
 import os
 
-fname = sys.argv[1]
-x, y = [], []
-property_name = fname.split(".")[0]
-print(os.getcwd())
+fnames = sys.argv[1:]
+X, Y = [], []
+print(fnames)
+print(X)
+property_name = fnames[0].split(".")[0]
 
-with open(fname) as file:
-    for line in file:
-        x_value, y_value = line.split("\t")
-        x.append(float(x_value))
-        y.append(float(y_value))
+for i, fname in enumerate(fnames):
+    X.append([])
+    Y.append([])
+    with open(fname) as file:
+        for line in file:
+            x_value, y_value = line.split("\t")
+            X[i].append(float(x_value))
+            Y[i].append(float(y_value))
 
 
 
 fig, ax = plt.subplots()
-ax.plot(x, y)
-
+for x, y in zip(X, Y):
+    ax.plot(x, y)
+    
 ax.set(xlabel='z', ylabel=property_name)
 ax.grid()
 plt.show()

@@ -41,7 +41,7 @@ private:
 	std::valarray<double> _p; // Давление дисперсной среды
 
 
-	void CorrectTimeStep(const std::valarray<double>& v_m_intermediate);
+	void PrintCourantNumber(const std::valarray<double>& v_m_intermediate);
 	void InitializeGeometryParameters(); // Инициализация параметров скважины
 	int CalculateNumberOfPoints();
 	void CalculateApproximateMixtureVelocity(std::valarray<double> & v_m_intermediate);
