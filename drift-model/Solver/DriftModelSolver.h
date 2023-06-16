@@ -50,7 +50,6 @@ private:
 	std::valarray<double> CalculateLiquidVelocity(const std::valarray<double>& v_m, const std::valarray<double>& alpha_g, const std::valarray<double>& v_g);
 	std::valarray<double> CalculateGasVolumeFraction(const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g);
 	std::valarray<double> CalculatePressureCorrection(const std::valarray<double> & v_m_intermediate, const std::valarray<double>& p_intermediate);
-	std::valarray<double> CalculateGasVelocityGeneral(const std::valarray<double> & v_m);
 	double CalculateGasImbalance(const std::valarray<double>& alpha_g_intermediate, const std::valarray<double>& p_intermediate, const std::valarray<double>& v_g_intermediate, const std::valarray<double>& v_l_intermediate);
 	void TDMA(std::valarray<double> & v, const std::valarray<double> & a, const std::valarray<double> & b, const std::valarray<double> & c, const std::valarray<double> & d);
 	void SimpleAlgorithm();

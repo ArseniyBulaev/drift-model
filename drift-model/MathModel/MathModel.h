@@ -66,13 +66,9 @@ namespace MathModel
 		std::valarray<double> CalculateC_0(const std::valarray<double> & d, const std::valarray<double> & alpha_g,  const std::valarray<double>& p, size_t n_points_cell_velocities, double dz);
 		std::valarray<double> CalculateV_d(const std::valarray<double> & d, const std::valarray<double> & alpha_g, std::valarray<double> p, size_t n_points_cell_velocities);
 
-
 		double GasSteadyFlowAnalyticsVelocity(double p, double z, double F);
 		double GasSteadyFlowAnalyticsDensity(double v, double p);
 
-		// Тестовая скорость дрейфа и параметр профиля газа
-		double CalculateGasProfileParameter_TEST(double alpha_g);
-		double CalculateDriftVelocity_TEST(double alpha_g);
 		// Скорость смеси
 		double GetMixtureVelocity(double alpha_g, double alpha_l, double v_g, double v_l);
 		// Скорость воды

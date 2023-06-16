@@ -122,8 +122,6 @@ std::valarray<double> MathModel::DriftModel::CalculateV_d(const std::valarray<do
 
 double MathModel::DriftModel::GasSteadyFlowAnalyticsVelocity(double p, double z, double F)
 {
-
-
 	double R = 8.314; // Газовая постоянная
 	double T = 293;   // Температура в Кельвинах
 	double C1 = -0.03567;
@@ -133,9 +131,6 @@ double MathModel::DriftModel::GasSteadyFlowAnalyticsVelocity(double p, double z,
 
 double MathModel::DriftModel::GasSteadyFlowAnalyticsDensity(double v, double p)
 {
-	
-	
-
 	double R = 8.314; // Газовая постоянная
 	double T = 293;   // Температура в Кельвинах
 	double C2 = 28076.974;
@@ -151,28 +146,6 @@ double MathModel::DriftModel::CalculateHydrostaticPressure(double rho, double h)
 	return rho * g * h;
 }
 
-
-
-double MathModel::DriftModel::CalculateGasProfileParameter_TEST(double alpha_g)
-{
-	const double C_0_0 = 1.2;
-	const double b = 0.6;
-
-	double C_0 = C_0_0 * (alpha_g < b ? 1 : 1.0 / (1 + (C_0_0 - 1) * pow((alpha_g - b) / (1 - b), 2)));
-
-	return C_0;
-}
-
-double MathModel::DriftModel::CalculateDriftVelocity_TEST(double alpha_g)
-{
-	const double c_l = 1500; // Скорость звука в воде
-	const double M_d = 1.5 * 1E-4;
-	const double b_1 = 0.9;
-
-	double v_d = c_l * M_d * (alpha_g < b_1 ? 1 : 1 - pow((alpha_g - b_1) / (1 - b_1), 2));
-
-	return v_d;
-}
 
 double MathModel::DriftModel::GetMixtureDensity(double alpha_g, double alpha_l, double p, double z)
 {
@@ -217,11 +190,9 @@ double MathModel::DriftModel::GetCharacteristicLiquidDensity()
 	return density;
 }
 
-
-
 double MathModel::DriftModel::GetLiquidViscosity()
 {
-	double water_viscosity = 1; // Единица согласно статье Синькова
+	double water_viscosity = 1; // Единица согласно статье Синькова (Нужно в безразмерном виде)
 	return water_viscosity;
 }
 
@@ -261,8 +232,6 @@ void MathModel::DriftModel::SetBubblesRisingInitialConditions(
 		alpha_g[i] = 0;
 	}
 
-	
-
 	for (size_t i = 0; i < p.size(); ++i)
 	{
 		p[i] = atm + CalculateHydrostaticPressure(GetCharacteristicLiquidDensity(), (i) * dz) * cos(theta[i]);
@@ -297,29 +266,17 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	// Устье скважины
 	size_t index_wt = 0;
 
+	// Условие на двление
 	p[index_wt] = atm;
 
 	// Условие на объёмную долю
 	alpha_g[index_wb_property] = 0.05;
-	//alpha_g[index_wt] = 0;
+	
 	
 	// Условие на скорость
 	v_g[index_wb_velocity] = -1.1E-1;
 	v_l[index_wb_velocity] = -1.1E-1;
-	//v_g[index_wt] = 0;
-	//v_l[index_wt] = 0;
 	v_m[index_wb_velocity] = -1.1E-1;
-	//v_m[index_wt] = 0; 
-
-	// Пересчёт значений на ячейку для скорости
-	/*double alpha_g_mid = (alpha_g[index_wb_property] + alpha_g[index_wb_property - 1]) / 2;
-	double alpha_l_mid = 1 - alpha_g_mid;
-	v_m[index_wb_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_wb_velocity], v_l[index_wb_velocity]);
-	v_m[index_wt] = v_m[index_wt + 1];*/
-
-	// Условие на давление
-	// double mixture_density = GetMixtureDensity(alpha_g_mid, alpha_l_mid, p[index_wb_property - 1], well.GetLength());
-	// p[index_wb_property] = CalculateHydrostaticPressure(GetLiquidDensity(0), well.GetLength()) - CalculateHydrostaticPressure(mixture_density, well.GetLength()); // Не задал нормально давление для жидкости
 }
 
 void MathModel::DriftModel::SetDebugInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, std::valarray<double>& v_g, std::valarray<double>& v_l, double dz)
@@ -342,27 +299,7 @@ void MathModel::DriftModel::SetDebugInitialConditions(std::valarray<double>& alp
 	}
 }
 
-void MathModel::DriftModel::SetDebugBoundaryConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, std::valarray<double>& v_g, std::valarray<double>& v_l, const Well well, double dt)
-{
-	
-	size_t index_velocity = 0;
-	size_t index_property = 1;
 
-	// Условие на объёмную долю
-	// alpha_g[index_property] = 0.05;
-
-	// Условие на скорость
-	// v_g[index_velocity] = 0.2;
-	// v_l[index_velocity] = 0;
-
-	// Пересчёт значений на ячейку для скорости
-	double alpha_g_mid = (alpha_g[index_property] + alpha_g[index_property - 1]) / 2;
-	double alpha_l_mid = 1 - alpha_g_mid;
-
-
-	// v_m[index_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_velocity], v_l[index_velocity]);
-
-}
 
 double MathModel::DriftModel::GetBubblesRisingLiquidFlow()
 {
@@ -393,4 +330,32 @@ void MathModel::DriftModel::SetDebugCharacteristicVelocity(Well well)
 void MathModel::DriftModel::SetDebugCharacteristicGasVolumeFraction()
 {
 	_alpha_g_0 = 0;
+}
+
+void MathModel::DriftModel::SetDebugBoundaryConditions(std::valarray<double>& alpha_g,
+	std::valarray<double>& p,
+	std::valarray<double>& v_m,
+	std::valarray<double>& v_g,
+	std::valarray<double>& v_l,
+	const Well well,
+	double dt)
+{
+
+	size_t index_velocity = 0;
+	size_t index_property = 1;
+
+	// Условие на объёмную долю
+	// alpha_g[index_property] = 0.05;
+
+	// Условие на скорость
+	// v_g[index_velocity] = 0.2;
+	// v_l[index_velocity] = 0;
+
+	// Пересчёт значений на ячейку для скорости
+	double alpha_g_mid = (alpha_g[index_property] + alpha_g[index_property - 1]) / 2;
+	double alpha_l_mid = 1 - alpha_g_mid;
+
+
+	// v_m[index_velocity] = GetMixtureVelocity(alpha_g_mid, alpha_l_mid, v_g[index_velocity], v_l[index_velocity]);
+
 }
