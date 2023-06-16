@@ -165,7 +165,7 @@ double MathModel::DriftModel::GetMixtureViscosity(double alpha_g)
 double MathModel::DriftModel::GetGasDensity(double p, double z)
 {
 	
-	// return  GetCharacteristicGasDensity(); // Как первое приближение возвращается константа
+	return  GetCharacteristicGasDensity(); // Как первое приближение возвращается константа
 	double R = 8.314; // Газовая постоянная
 	double T = 293;   // Температура в Кельвинах
 	return p / (R * T);
@@ -215,7 +215,7 @@ double MathModel::DriftModel::GetFrictionCoefficient(double alpha_g,double alpha
 	}
 
 
-	return f;
+	return 0;
 }
 
 void MathModel::DriftModel::SetBubblesRisingInitialConditions(
@@ -270,13 +270,18 @@ void MathModel::DriftModel::SetBubblesRisingBoundaryConditions(
 	p[index_wt] = atm;
 
 	// Условие на объёмную долю
-	alpha_g[index_wb_property] = 0.05;
+	alpha_g[index_wb_property] = gas_flow / (gas_flow + liquid_flow);
 	
 	
 	// Условие на скорость
-	v_g[index_wb_velocity] = -1.1E-1;
-	v_l[index_wb_velocity] = -1.1E-1;
-	v_m[index_wb_velocity] = -1.1E-1;
+	v_g[index_wb_velocity] = - gas_flow / S;
+	v_l[index_wb_velocity] = - liquid_flow / S;
+	v_m[index_wb_velocity] = GetMixtureVelocity(
+		(alpha_g[index_wb_property] + alpha_g[index_wb_property - 1]) / 2,
+	 1 - (alpha_g[index_wb_property] + alpha_g[index_wb_property - 1]) / 2,
+			v_g[index_wb_velocity],
+			v_l[index_wb_velocity]
+		);
 }
 
 void MathModel::DriftModel::SetDebugInitialConditions(std::valarray<double>& alpha_g, std::valarray<double>& p, std::valarray<double>& v_m, std::valarray<double>& v_g, std::valarray<double>& v_l, double dz)
@@ -309,7 +314,7 @@ double MathModel::DriftModel::GetBubblesRisingLiquidFlow()
 
 double MathModel::DriftModel::GetBubblesRisingGasFlow()
 {
-	double flow_value = GetBubblesRisingLiquidFlow() / 10;
+	double flow_value = GetBubblesRisingLiquidFlow() / 20;
 	return flow_value;
 }
 
@@ -318,7 +323,6 @@ void MathModel::DriftModel::SetBubblesRisingCharacteristicVelocity(Well well)
 	double gas_velocity = GetBubblesRisingGasFlow() / well.GetBottomCrossSectionArea();
 	double liquid_velocity = GetBubblesRisingLiquidFlow() / well.GetBottomCrossSectionArea();
 	_U =  std::max(gas_velocity, liquid_velocity);
-	_U = 1.1E-1;
 }
 
 

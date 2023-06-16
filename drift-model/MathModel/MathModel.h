@@ -31,7 +31,11 @@ namespace MathModel
 			{
 			case MathModel::TaskType::BubblesRising:
 			{
-				_alpha_g_0 = 0.05;
+				// Характерная объёмная доля газа
+				double gas_flow = GetBubblesRisingGasFlow();
+				double liquid_flow = GetBubblesRisingLiquidFlow();
+				_alpha_g_0 = gas_flow / (gas_flow + liquid_flow);
+
 				SetBubblesRisingCharacteristicVelocity(well);
 				break;
 			}
@@ -135,8 +139,6 @@ namespace MathModel
 		void SetDebugCharacteristicVelocity(Well well);
 		void SetDebugCharacteristicGasVolumeFraction();
 		#pragma endregion
-		
-
 		
 
 
