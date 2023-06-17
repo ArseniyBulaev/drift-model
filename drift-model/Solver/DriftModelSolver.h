@@ -11,7 +11,7 @@
 class DriftModelSolver
 {
 public:
-	DriftModelSolver(double dz, double dt, const Well& well, MathModel::TaskType task_type);
+	DriftModelSolver(double time, double dz, double dt, const Well& well, MathModel::TaskType task_type);
 	void Solve();
 
 private:
@@ -19,6 +19,10 @@ private:
 	const Well _well; // Скважина
 	const double _dz; // Шаг по пространству
 	double _dt; // Шаг по времени
+	double _calculation_time; // Время расчёта
+	double _print_step; // Шаг печати в файл
+	int _time_iterations_count;
+	int _print_iteration_step;
 
 	MathModel::DriftModel _drift_model; // Класс математической модели
 	Writer _results_writer; // Объект для печати результатов

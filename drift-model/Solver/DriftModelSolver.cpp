@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 
-DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well, MathModel::TaskType task_type): _dz(dz), _dt(dt), _well(well), _drift_model(task_type, well)
+DriftModelSolver::DriftModelSolver(double time,double dz, double dt,  const Well & well, MathModel::TaskType task_type): _calculation_time(time), _dz(dz), _dt(dt), _well(well), _drift_model(task_type, well)
 {
 	// Вычисление числа точек для значений параметров
 	_n_points_cell_properties = CalculateNumberOfPoints();
@@ -25,7 +25,11 @@ DriftModelSolver::DriftModelSolver(double dz, double dt,  const Well & well, Mat
 	_alpha_g = std::valarray<double>(_n_points_cell_properties); // Объёмная доля газа
 	_p = std::valarray<double>(_n_points_cell_properties); // Давление в дисперсной среде
 
-
+	// Параметры для печати в файл
+	_print_step = _calculation_time / 4;
+	_time_iterations_count = _calculation_time / _dt;
+	_print_iteration_step = _print_step / _dt;
+	
 	// Инициализация параметров ячеек
 	InitializeGeometryParameters();
 }
@@ -48,14 +52,7 @@ void DriftModelSolver::SimpleAlgorithm()
 	// Точность
 	const double accuracy = 1E-3;
 
-	// Время расчёта
-	const double calculation_time = 800;
-	// Условие печати в файл
-	const double print_step = calculation_time / 4;
-	// Число итераций по времени
-	const int time_iterations_count = calculation_time /  _dt;
-	// Печатаем каждую итерацию кратную данному числу
-	const int print_iteration_step = print_step / _dt;
+	
 
 	// Проверка сходимости
 	bool imbalance_convergence_predicate;
@@ -63,10 +60,9 @@ void DriftModelSolver::SimpleAlgorithm()
 
 	// Номер внутренней итерации
 	int internal_iteration_number = 0;
-	int external_iteration_number = 0;
+	int time_iteration_number = 0;
 
 	_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
-	_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p_initial.txt");
 
 	// Промежуточные вычисления
 	std::valarray<double> v_m_intermediate = _v_m;
@@ -84,11 +80,9 @@ void DriftModelSolver::SimpleAlgorithm()
 
 	
 
-
-
 	do
 	{
-		std::cout << "\t\t model time : " << _dt * external_iteration_number << " sec." << std::endl << std::endl;
+		std::cout << "\t\t model time : " << _dt * time_iteration_number << " sec." << std::endl << std::endl;
 
 		// Граничные условия
 		_drift_model.SetBoundaryConditions(_alpha_g, _p, _v_m, _v_g, _v_l, _well, _dt);
@@ -153,11 +147,7 @@ void DriftModelSolver::SimpleAlgorithm()
 
 		} while (norm_convergence_predicate);
 
-
 		internal_iteration_number = 0;
-		// Выполнение внешней итерации (итерацци по времени)
-		++external_iteration_number;
-
 
 		_v_m = v_m_intermediate;
 		_p = p_intermediate;
@@ -165,32 +155,26 @@ void DriftModelSolver::SimpleAlgorithm()
 		_v_l = v_l_intermediate;
 		_alpha_g = alpha_g_intermediate;
 
-		// Снос из граничной ячейки сверху
+		// Вытекание из граничной ячейки сверху
 		if (abs(_alpha_g[0]) > 0)
 		{
 			_alpha_g[0] += _alpha_g[0] * _v_g[0] * _dt / _dz;
 		}
 
-		if (external_iteration_number % print_iteration_step == 0)
+		if (time_iteration_number % _print_iteration_step == 0)
 		{
-			_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_v_m, _dz, "v_m_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_v_g, _dz, "v_g_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_v_l, _dz, "v_l_" + std::to_string(int(_dt * external_iteration_number)) + ".txt");
+			_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_v_m, _dz, "v_m__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_v_g, _dz, "v_g__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
+			_results_writer.WriteToFile(_v_l, _dz, "v_l__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
 		}
 
 
-	} while (_dt * external_iteration_number < calculation_time);
+		// Выполнение внешней итерации (итерацци по времени)
+		++time_iteration_number;
 
-
-	double a_v = _drift_model.GasSteadyFlowAnalyticsVelocity(_p[0], _well.GetLength(), _well.GetBottomCrossSectionArea());
-	double a_rho = _drift_model.GasSteadyFlowAnalyticsDensity(a_v, _p[0]);
-
-	double b_v = _v_g[_n_points_cell_velocities - 1];
-	double b_rho = _drift_model.GasSteadyFlowAnalyticsDensity(b_v, _p[0]);
-
-	
+	} while (_dt * time_iteration_number <= _calculation_time);
 }
 
 #pragma region Support
