@@ -314,7 +314,7 @@ double MathModel::DriftModel::GetBubblesRisingLiquidFlow()
 
 double MathModel::DriftModel::GetBubblesRisingGasFlow()
 {
-	double flow_value = GetBubblesRisingLiquidFlow() / 20;
+	double flow_value = GetBubblesRisingLiquidFlow() / 4;
 	return flow_value;
 }
 

@@ -13,11 +13,12 @@ using namespace std;
 int main() {
 
 
-	double dz = 0.1;
-	double dt = 0.01;
-	Well well = Well({ WellSegment(10,0,0,0.1)});
+	double dz = 10;
+	double dt = 1;
+	double T = 566038; // Время расчёта в секундах
+	Well well = Well({ WellSegment(3000,0,0,0.1)});
 	MathModel::TaskType task_type = MathModel::TaskType::BubblesRising;
-	DriftModelSolver solver(dz, dt, well, task_type);
+	DriftModelSolver solver(T, dz, dt, well, task_type);
 
 	solver.Solve();
 	
