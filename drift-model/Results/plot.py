@@ -7,8 +7,8 @@ fnames = [line.rstrip() for line in sys.stdin]
 print(fnames)
 X, Y = [], []
 property_name = fnames[0].split("__")[0]
-times = [fname.split("__")[1].split(".")[0] for fname in fnames]
-
+times = [fname[:-4].split("__")[1] for fname in fnames]
+print(times)
 
 for i, fname in enumerate(fnames):
     X.append([])
@@ -23,7 +23,8 @@ for i, fname in enumerate(fnames):
 
 fig, ax = plt.subplots()
 for x, y, time in zip(X, Y, times):
-    ax.plot(x, y, label = time + " sec.")
+    # time = str(int(float(time) / 60))
+    ax.plot(x, y, label = " dz = " + time)
  
 ax.legend() 
 ax.set(xlabel='z', ylabel=property_name)

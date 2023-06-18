@@ -26,7 +26,7 @@ DriftModelSolver::DriftModelSolver(double time,double dz, double dt,  const Well
 	_p = std::valarray<double>(_n_points_cell_properties); // Давление в дисперсной среде
 
 	// Параметры для печати в файл
-	_print_step = _calculation_time / 4;
+	_print_step = _calculation_time ;
 	_time_iterations_count = _calculation_time / _dt;
 	_print_iteration_step = _print_step / _dt;
 	
@@ -78,7 +78,18 @@ void DriftModelSolver::SimpleAlgorithm()
 	std::valarray<double> v_l_previous_iteration = _v_l;
 	std::valarray<double> alpha_g_previous_iteration = _alpha_g;
 
-	
+	double l2_norm_of_difference_v_m;
+	double l2_norm_of_difference_p;
+	double l2_norm_of_difference_alpha_g;
+
+	double l2_norm_of_v_m_previous_iteration;
+	double l2_norm_of_p_previous_iteration;
+	double l2_norm_of_alpha_g_previous_iteration;
+
+	/*_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p__" + std::to_string(time_iteration_number * _dt) + ".txt");
+	_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g__" + std::to_string(time_iteration_number * _dt) + ".txt");
+	_results_writer.WriteToFile(_v_m, _dz, "v_m__" + std::to_string(time_iteration_number * _dt) + ".txt");*/
+
 
 	do
 	{
@@ -90,7 +101,7 @@ void DriftModelSolver::SimpleAlgorithm()
 		do
 		{
 			// Корректировка шага по времени согласно условию Куранта
- 			PrintCourantNumber(v_m_intermediate);
+ 			// PrintCourantNumber(v_m_intermediate);
 
 			// Вычисление приближённого значения скорости смеси
 			CalculateApproximateMixtureVelocity(v_m_intermediate);
@@ -121,19 +132,27 @@ void DriftModelSolver::SimpleAlgorithm()
 			std::cout << "iteration : " << internal_iteration_number << std::endl;
 
 			// Вычисление нормы разности решений
-			double l2_norm_of_difference_v_m = sqrt((v_m_intermediate - v_m_previous_iteration).apply([](double value)->double {return value * value; }).sum());
-			double l2_norm_of_difference_p = sqrt((p_intermediate - p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
-			double l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
-			double l2_norm_of_difference_v_g = sqrt((v_g_intermediate - v_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			l2_norm_of_difference_v_m = sqrt((v_m_intermediate - v_m_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			l2_norm_of_difference_p = sqrt((p_intermediate - p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			l2_norm_of_difference_alpha_g = sqrt((alpha_g_intermediate - alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			// double l2_norm_of_difference_v_g = sqrt((v_g_intermediate - v_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+
+			// Вычисление нормы решения с предыдущей итерации
+			l2_norm_of_v_m_previous_iteration = sqrt((v_m_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			l2_norm_of_p_previous_iteration = sqrt((p_previous_iteration).apply([](double value)->double {return value * value; }).sum());
+			l2_norm_of_alpha_g_previous_iteration = sqrt((alpha_g_previous_iteration).apply([](double value)->double {return value * value; }).sum());
 
 			// INFO
-			std::cout << "\t\t v_m L2 norm of difference : " << l2_norm_of_difference_v_m << std::endl;
-			std::cout << "\t\t p L2 norm of difference : " << l2_norm_of_difference_p << std::endl;
-			std::cout << "\t\t v_g L2 norm of difference : " << l2_norm_of_difference_v_g << std::endl;
-			std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g << std::endl << std::endl;
+			std::cout << "\t\t v_m L2 norm of difference : " << l2_norm_of_difference_v_m / l2_norm_of_v_m_previous_iteration << std::endl;
+			std::cout << "\t\t p L2 norm of difference : " << l2_norm_of_difference_p / l2_norm_of_p_previous_iteration << std::endl;
+			//std::cout << "\t\t v_g L2 norm of difference : " << l2_norm_of_difference_v_g << std::endl;
+			std::cout << "\t\t alpha_g L2 norm of difference : " << l2_norm_of_difference_alpha_g / l2_norm_of_alpha_g_previous_iteration << std::endl << std::endl;
+			
 			
 			// Контроль сходимости по норме
-			norm_convergence_predicate = (l2_norm_of_difference_v_m > accuracy) /*|| (l2_norm_of_difference_p > accuracy) || (l2_norm_of_difference_alpha_g > accuracy)*/;
+			norm_convergence_predicate = ((l2_norm_of_difference_v_m / l2_norm_of_v_m_previous_iteration) > accuracy) ||
+				 ((l2_norm_of_difference_p / l2_norm_of_p_previous_iteration) >  accuracy) ||
+				 ((l2_norm_of_difference_alpha_g / l2_norm_of_alpha_g_previous_iteration) > accuracy);
 
 			// Выполнение внутренней итерации
 			++internal_iteration_number;
@@ -161,18 +180,20 @@ void DriftModelSolver::SimpleAlgorithm()
 			_alpha_g[0] += _alpha_g[0] * _v_g[0] * _dt / _dz;
 		}
 
-		if (time_iteration_number % _print_iteration_step == 0)
-		{
-			_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_v_m, _dz, "v_m__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_v_g, _dz, "v_g__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
-			_results_writer.WriteToFile(_v_l, _dz, "v_l__" + std::to_string(int(_dt * time_iteration_number)) + ".txt");
-		}
-
-
 		// Выполнение внешней итерации (итерацци по времени)
 		++time_iteration_number;
+
+		if (time_iteration_number % _print_iteration_step == 0)
+		{
+			
+
+			_results_writer.WriteToFile((_p) / _drift_model.atm, _dz, "p__" + std::to_string(_dz) + ".txt");
+			_results_writer.WriteToFile(_alpha_g, _dz, "alpha_g__" + std::to_string(_dz) + ".txt");
+			_results_writer.WriteToFile(_v_m, _dz, "v_m__" + std::to_string(_dz) + ".txt");
+			//_results_writer.WriteToFile(_v_g, _dz, "v_g__" + std::to_string(_dz) + ".txt");
+			//_results_writer.WriteToFile(_v_l, _dz, "v_l__" + std::to_string(_dz) + ".txt");
+		}
+		
 
 	} while (_dt * time_iteration_number <= _calculation_time);
 }
@@ -185,6 +206,10 @@ void DriftModelSolver::PrintCourantNumber(const std::valarray<double>  & v_m_int
 	auto U = v_m_intermediate.max();
 	double C = abs(U) * _dt / _dz;
 	std::cout << "Courant number value : " << C << std::endl;
+	if (C > 1)
+	{
+		system("pause");
+	}
 
 }
 
